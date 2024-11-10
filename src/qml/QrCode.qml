@@ -36,6 +36,7 @@ Item {
 
     // TODO: this unit is in image-space, not screen-space
     property double padding: 64
+    property double imgPadding: 10
 
     property double currentOpacity: 0
     property var openPopupFunction: function(title, body, buttons, userdata) {}
@@ -101,6 +102,16 @@ Item {
                                 Qt.point(cx - halfWidth * cos + halfWidth * sin,
                                          cy - halfWidth * sin - halfWidth * cos)
                               )
+    }
+
+    function updateOBBFromImage(position, imgScale, imageX, imageY) {
+        codeObb.topLeft = Qt.point(position.topLeft.x + imageX - imgPadding, position.topLeft.y + imageY - imgPadding)
+        codeObb.topRight = Qt.point(position.topRight.x + imageX + imgPadding, position.topRight.y + imageY - imgPadding)
+        codeObb.bottomLeft = Qt.point(position.bottomLeft.x + imageX - imgPadding, position.bottomLeft.y + imageY + imgPadding)
+        codeObb.bottomRight = Qt.point(position.bottomRight.x + imageX + imgPadding, position.bottomRight.y + imageY + imgPadding)
+
+        fadeOut.stop()
+        fadeIn.start()
     }
 
     BarcodeReader {
@@ -257,10 +268,34 @@ Item {
         }
     }
 
+    SequentialAnimation {
+        id: imgPaddingAnimation
+        running: !!lastValidResult
+        loops: Animation.Infinite
+
+        NumberAnimation {
+            target: barcodeReaderComponent
+            property: "imgPadding"
+            from: 12
+            to: 36
+            duration: 800
+            easing.type: Easing.InOutQuad
+        }
+
+        NumberAnimation {
+            target: barcodeReaderComponent
+            property: "imgPadding"
+            from: 36
+            to: 12
+            duration: 800
+            easing.type: Easing.InOutQuad
+        }
+    }
+
     Timer {
         id: updateLowPassTimer
         interval: 1000 / 120
-        running: !!lastValidResult
+        running: !!lastValidResult && !!viewfinder
         onTriggered: {
             if (!lastValidResult) return
 

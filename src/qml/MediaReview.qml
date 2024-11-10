@@ -37,6 +37,18 @@ Rectangle {
     color: "black"
     visible: false
 
+    function openPopup(title, body, buttons, data) {
+        popupTitle = title
+        popupBody = body
+        popupButtons = buttons
+        popupData = data
+        popupState = "opened"
+    }
+
+    onVisibleChanged: {
+        if (!visible) qrCodeComponent.lastValidResult =  null
+    }
+
     Connections {
         target: thumbnailGenerator
 
@@ -83,6 +95,7 @@ Rectangle {
                 drawerAnimation.to = parent.height
                 drawerAnimation.start()
             }
+            qrCodeComponent.lastValidResult =  null
             viewRect.hideMediaInfo = false
         } else if (Math.abs(deltaX) > swipeThreshold) {
             if (deltaX > 0) { // Swipe right
@@ -94,8 +107,10 @@ Rectangle {
                     viewRect.index += 1
                 }
             }
+            qrCodeComponent.lastValidResult =  null
             viewRect.hideMediaInfo = false
         } else { // Touch
+            qrCodeComponent.lastValidResult =  null
             if (viewRect.hideMediaInfo === false) {
                 viewRect.scaleRatio = 1.0
                 viewRect.vCenterOffsetValue = 0
@@ -108,6 +123,26 @@ Rectangle {
 
             viewRect.hideMediaInfo = !viewRect.hideMediaInfo
         }
+    }
+
+    function scalePoint(point, readWidth, readHeight, imgWidth, imgHeight) {
+        var scaledX = (point.x / readWidth) * imgWidth;
+        var scaledY = (point.y / readHeight) * imgHeight;
+        return Qt.point(scaledX, scaledY);
+    }
+
+    function getScaledCorners(position, readWidth, readHeight, imgWidth, imgHeight) {
+        var scaledTopLeft = scalePoint(position.topLeft, readWidth, readHeight, imgWidth, imgHeight);
+        var scaledTopRight = scalePoint(position.topRight, readWidth, readHeight, imgWidth, imgHeight);
+        var scaledBottomLeft = scalePoint(position.bottomLeft, readWidth, readHeight, imgWidth, imgHeight);
+        var scaledBottomRight = scalePoint(position.bottomRight, readWidth, readHeight, imgWidth, imgHeight);
+
+        return {
+            topLeft: scaledTopLeft,
+            topRight: scaledTopRight,
+            bottomLeft: scaledBottomLeft,
+            bottomRight: scaledBottomRight
+        };
     }
 
     Component {
@@ -155,6 +190,7 @@ Rectangle {
         Item {
             id: imageContainer
             anchors.fill: parent
+            property var positionData
 
             Image {
                 id: image
@@ -179,6 +215,22 @@ Rectangle {
                         duration: 300
                         easing.type: Easing.InOutQuad
                     }
+                }
+            }
+
+            function scanImage() {
+                var result = QRCodeHandler.checkQRCodeInMedia(currentFileUrl, image.width, image.height)
+
+                if (result.isValid) {
+                    imageContainer.positionData = getScaledCorners(result.position, result.readWidth, result.readHeight, image.width, image.height)
+
+                    qrCodeComponent.smoothedPosition = imageContainer.positionData
+
+                    qrCodeComponent.updateLowPass(imageContainer.positionData);
+
+                    qrCodeComponent.updateOBBFromImage(imageContainer.positionData, image.scale, image.x, image.y);
+
+                    qrCodeComponent.lastValidResult = result
                 }
             }
 
@@ -212,12 +264,50 @@ Rectangle {
                         startY = mouse.y
                     }
 
+                    onPressAndHold: {
+                        scanImage()
+                    }
+
                     onReleased: {
                         var deltaX = mouse.x - startX
                         var deltaY = mouse.y - startY
 
+                        if (mediaMenu.visible){
+                            scanImageTimer.start()
+                        }
+
                         swipeGesture(deltaX, deltaY, swipeThreshold)
                     }
+                }
+            }
+
+            Timer {
+                id: updateObbFromImageScan
+                interval: 1000 / 120
+                running: !!qrCodeComponent.lastValidResult && !qrCodeComponent.viewfinder
+                onTriggered: {
+                    if (!qrCodeComponent.lastValidResult) return
+
+                    qrCodeComponent.updateOBBFromImage(imageContainer.positionData, image.scale, image.x, image.y)
+                    updateObbFromImageScan.start()
+                }
+            }
+
+            Timer {
+                id: scanImageTimer
+                interval: 1000 / 120
+                running: false;
+                repeat: false
+                onTriggered: {
+                    if (mediaDate.visible){
+                        scanImage()
+                    }
+                }
+            }
+
+            onVisibleChanged: {
+                if (visible) {
+                    scanImage()
                 }
             }
         }
@@ -708,5 +798,11 @@ Rectangle {
             styleColor: "black"
             font.pixelSize: viewRect.textSize
         }
+    }
+
+    QrCode {
+        id: qrCodeComponent
+        viewfinder: null
+        openPopupFunction: openPopup
     }
 }

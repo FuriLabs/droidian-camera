@@ -6,7 +6,9 @@
 // Joaquin Philco <joaquinphilco@gmail.com>
 
 #include "qrcodehandler.h"
+#include "zxingreader.h"
 #include <QProcess>
+#include <QImage>
 #include <cstdlib>
 #include <iostream>
 #include <QRegularExpression>
@@ -15,6 +17,10 @@
 #include <QtDBus>
 #include <QDBusConnection>
 #include <QDBusMessage>
+
+using ZXing::ReaderOptions;
+using ZXing::Position;
+using ZXing::Result;
 
 QRegularExpression urlPattern("^(?:http(s)?://)?[\\w.-]+(?:\\.[\\w.-]+)+[\\w\\-._~:/?#[\\]@!$&'()*+,;=]*$");
 QRegularExpression wifiPattern("^WIFI:S:([^;]+);T:([^;]+);P:([^;]+)");
@@ -509,7 +515,7 @@ bool QRCodeHandler::getWiFiEnabled() {
     }
 
     QVariant reply = wifi.property("WirelessEnabled");
-    
+
     if (!reply.isValid()) {
         qWarning() << "Failed to get WirelessEnabled";
         QDBusConnection::systemBus().disconnectFromBus(QDBusConnection::systemBus().name());
@@ -517,7 +523,7 @@ bool QRCodeHandler::getWiFiEnabled() {
     }
 
     bool enabled = reply.toBool();
-    
+
     QDBusConnection::systemBus().disconnectFromBus(QDBusConnection::systemBus().name());
     return enabled;
 }
@@ -545,4 +551,83 @@ QString QRCodeHandler::getSignalStrengthIcon() {
 
 QString QRCodeHandler::getWifiId() {
     return ssid;
+}
+
+QVariant QRCodeHandler::checkQRCodeInMedia(const QString &currUrl) {
+    QVariantMap resultMap;
+    QString filePath = currUrl;
+    int colonIndex = filePath.indexOf(':');
+
+    if (colonIndex != -1) {
+        filePath.remove(0, colonIndex + 1);
+    }
+
+    QImage image;
+
+    if (!image.load(filePath)) {
+        qDebug() << "Failed to load image from" << filePath;
+        resultMap["text"] = "";
+        resultMap["isValid"] = false;
+        resultMap["position"] = QVariantMap();
+        return resultMap;
+    }
+
+    ReaderOptions opts;
+    opts.setMaxNumberOfSymbols(1);
+
+    auto ImgFmtFromQImg = [](const QImage& img) {
+        switch (img.format()) {
+            case QImage::Format_ARGB32:
+            case QImage::Format_RGB32:
+#if Q_BYTE_ORDER == Q_LITTLE_ENDIAN
+                return ZXing::ImageFormat::BGRX;
+#else
+                return ZXing::ImageFormat::XRGB;
+#endif
+            case QImage::Format_RGB888: return ZXing::ImageFormat::RGB;
+            case QImage::Format_RGBX8888:
+            case QImage::Format_RGBA8888: return ZXing::ImageFormat::RGBX;
+            case QImage::Format_Grayscale8: return ZXing::ImageFormat::Lum;
+            default: return ZXing::ImageFormat::None;
+        }
+    };
+
+    ZXing::ImageFormat format = ImgFmtFromQImg(image);
+    if (format == ZXing::ImageFormat::None) {
+        qDebug() << "Unsupported image format.";
+        resultMap["text"] = "";
+        resultMap["isValid"] = false;
+        resultMap["position"] = QVariantMap();
+        return resultMap;
+    }
+
+    ZXing::ImageView imageView({image.bits(), image.width(), image.height(), format, static_cast<int>(image.bytesPerLine())});
+    Result qResults = ZXing::ReadBarcode(imageView, opts);
+
+    resultMap["text"] = QString::fromStdString(qResults.text());
+    resultMap["isValid"] = qResults.isValid();
+
+    QVariantMap positionMap;
+    positionMap["topLeft"] = QVariantMap{
+        {"x", qResults.position().topLeft().x},
+        {"y", qResults.position().topLeft().y}
+    };
+    positionMap["topRight"] = QVariantMap{
+        {"x", qResults.position().topRight().x},
+        {"y", qResults.position().topRight().y}
+    };
+    positionMap["bottomRight"] = QVariantMap{
+        {"x", qResults.position().bottomRight().x},
+        {"y", qResults.position().bottomRight().y}
+    };
+    positionMap["bottomLeft"] = QVariantMap{
+        {"x", qResults.position().bottomLeft().x},
+        {"y", qResults.position().bottomLeft().y}
+    };
+
+    resultMap["position"] = positionMap;
+    resultMap["readWidth"] = image.width();
+    resultMap["readHeight"] = image.height();
+
+    return resultMap;
 }
