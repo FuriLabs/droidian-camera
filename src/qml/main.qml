@@ -23,7 +23,7 @@ ApplicationWindow {
     width: 400
     height: 800
     visible: true
-    title: "Camera"
+    title: "CameraWindow"
 
     Screen.orientationUpdateMask: Qt.PortraitOrientation
 
@@ -32,13 +32,10 @@ ApplicationWindow {
 
     property real scalingRatio: Math.max(Screen.width / refWidth, Screen.height / refHeight)
 
-
-    property alias cam: camGst
     property bool videoCaptured: false
 
     property var countDown: 0
     property var blurView: optionContainer.state == "closed" && infoDrawer.position == 0.0 ? 0 : 1
-    property var useFlash: 0
     property var frontCameras: 0
     property var backCameras: 0
     property var swipeDirection: 0 // 0 = swiped left, 1 = swiped right, 2 = clicked
@@ -52,27 +49,35 @@ ApplicationWindow {
     property var popupButtons: null
     property var mediaViewOpened: false
     property var focusPointVisible: false
+    property var cameraAspWide: 1
     property var aeflock: "AEFLockOff"
+    property var pinchAreaEnabled: true
 
 
     property var gps_icon_source: settings.gpsOn ? "icons/gpsOn.svg" : "icons/gpsOff.svg"
     property var locationAvailable: 0
 
     signal customClosing()
+    signal cameraTakeShot()
+    signal cameraTakeVideo()
+    signal cameraEnableGestures(bool value)
+    signal cameraChangeResolution(string resolution)
+    signal stopCamera()
+    signal setFlashState(int flashState)
 
     onActiveChanged:{
-        if (camera.cameraState === Camera.UnloadedState && window.active) {
-            console.log("restarting camera")
-            camera.cameraState = Camera.ActiveState
-            camera.start()
-        }
+        // if (camera.cameraState === Camera.UnloadedState && window.active) {
+        //     console.log("restarting camera")
+        //     //camera.cameraState = Camera.ActiveState
+        //    // camera.start()
+        // }
     }
 
     onClosing: {
         console.log("Window closing event triggered")
         close.accepted = false
         console.log("Stopping camera...")
-        camera.stop()
+        // camera.stop()
         customClosing()
     }
 
@@ -82,35 +87,6 @@ ApplicationWindow {
         popupButtons = buttons
         popupData = data
         popupState = "opened"
-    }
-
-    Settings {
-        id: settings
-        objectName: "settingsObject"
-        property int cameraId: 0
-        property int aspWide: 0
-        property var flash: "flashAuto"
-        property var cameras: [{"cameraId": 0, "resolution": 0},
-                                {"cameraId": 1, "resolution": 0},
-                                {"cameraId": 2, "resolution": 0},
-                                {"cameraId": 3, "resolution": 0},
-                                {"cameraId": 4, "resolution": 0},
-                                {"cameraId": 5, "resolution": 0},
-                                {"cameraId": 6, "resolution": 0},
-                                {"cameraId": 7, "resolution": 0},
-                                {"cameraId": 8, "resolution": 0},
-                                {"cameraId": 9, "resolution": 0}]
-
-        property int soundOn: 1
-        property var hideInfoDrawer: 0
-        property int gpsOn: 0
-    }
-
-    Settings {
-        id: settingsCommon
-        fileName: fileManager.getConfigFile(); //"/etc/furios-camera.conf" or "/usr/lib/furios/device/furios-camera.conf"
-
-        property var blacklist: 0
     }
 
     ListModel {
@@ -149,6 +125,40 @@ ApplicationWindow {
         }
     }
 
+    Settings {
+        id: settings
+        objectName: "settingsObject"
+        property int cameraId: 0
+        property int aspWide: 0
+        property int flashMode: Camera.FlashOff
+        property int focusMode: Camera.FocusAuto
+        property int focusPointMode: Camera.FocusPointCenter
+        property var cameras: [{"cameraId": 0, "resolution": 0},
+                                {"cameraId": 1, "resolution": 0},
+                                {"cameraId": 2, "resolution": 0},
+                                {"cameraId": 3, "resolution": 0},
+                                {"cameraId": 4, "resolution": 0},
+                                {"cameraId": 5, "resolution": 0},
+                                {"cameraId": 6, "resolution": 0},
+                                {"cameraId": 7, "resolution": 0},
+                                {"cameraId": 8, "resolution": 0},
+                                {"cameraId": 9, "resolution": 0}]
+
+        property int soundOn: 1
+        property var hideInfoDrawer: 0
+        property int gpsOn: 0
+        property int cameraPosition: Camera.FrontFace
+        property int settingsAspWide: 0
+        property var cameraDeviceId: model.cameraId;
+    }
+
+    Settings {
+        id: settingsCommon
+        fileName: fileManager.getConfigFile(); //"/etc/furios-camera.conf" or "/usr/lib/furios/device/furios-camera.conf"
+
+        property var blacklist: 0
+    }
+
     background: Rectangle {
         color: "black"
     }
@@ -163,36 +173,36 @@ ApplicationWindow {
                 name: "WaitingForTarget" // AEF lock on and waiting for target.
 
                 PropertyChanges {
-                    target: camera
-                    focus.focusMode: Camera.FocusAuto
-                    focus.focusPointMode: Camera.FocusPointCustom
+                    target: settings
+                    focusMode: Camera.FocusAuto
+                    focusPointMode: Camera.FocusPointCustom
                 }
             },
             State {
                 name: "TargetLocked" // First touch after AEF Lock started.
 
                 PropertyChanges {
-                    target: camera
-                    focus.focusMode: Camera.FocusContinuous
-                    focus.focusPointMode: Camera.FocusPointCustom
+                    target: settings
+                    focusMode: Camera.FocusContinuous
+                    focusPointMode: Camera.FocusPointCustom
                 }
             },
             State {
                 name: "AutomaticFocus" // Moving around and no touch, no AEF lock.
 
                 PropertyChanges {
-                    target: camera
-                    focus.focusMode: Camera.FocusAuto
-                    focus.focusPointMode: Camera.FocusPointAuto
+                    target: settings
+                    focusMode: Camera.FocusAuto
+                    focusPointMode: Camera.FocusPointAuto
                 }
             },
             State {
                 name: "ManualFocus" // Touch screen and no AEF lock.
 
                 PropertyChanges {
-                    target: camera
-                    focus.focusMode: Camera.FocusAuto
-                    focus.focusPointMode: Camera.FocusPointCustom
+                    target: settings
+                    focusMode: Camera.FocusAuto
+                    focusPointMode: Camera.FocusPointCustom
                 }
             }
         ]
@@ -233,397 +243,32 @@ ApplicationWindow {
         ]
     }
 
+    Loader {
+        anchors.fill: parent
+        id: cameraLoader
+        asynchronous: true
+        source: "Camera.qml"
+
+        onLoaded: {
+            console.log("Camera component has been loaded!")
+            window.cameraTakeShot.connect(cameraLoader.item.handleCameraTakeShot);
+            window.cameraTakeVideo.connect(cameraLoader.item.handleCameraTakeVideo);
+            window.cameraChangeResolution.connect(cameraLoader.item.handleCameraChangeResolution);
+            window.stopCamera.connect(cameraLoader.item.handleStopCamera);
+            window.setFlashState.connect(cameraLoader.item.handleSetFlashState);
+        }
+    }
+
     SoundEffect {
         id: sound
         source: "sounds/camera-shutter.wav"
     }
 
-    Rectangle {
-        id: videoFrame
-        anchors.fill: parent
-        color: "black"
-    }
-
-    VideoOutput {
-        id: viewfinder
-
-        property var gcdValue: gcd(camera.viewfinder.resolution.width, camera.viewfinder.resolution.height)
-
-        width: videoFrame.width
-        height: videoFrame.height
-        anchors.centerIn: parent
-        anchors.verticalCenterOffset: gcdValue === "16:9" ? -30 * window.scalingRatio : -60 * window.scalingRatio
-        source: camera
-        autoOrientation: true
-        filters: cslate.state === "PhotoCapture" ? [qrCodeComponent.qrcode] : []
-
-        PinchArea {
-            id: pinchArea
-            x: parent.width / 2 - parent.contentRect.width / 2
-            y: parent.height / 2 - parent.contentRect.height / 2
-            width: parent.contentRect.width
-            height: parent.contentRect.height
-            pinch.target: camZoom
-            pinch.maximumScale: camera.maximumDigitalZoom / camZoom.zoomFactor
-            pinch.minimumScale: 0
-            enabled: !mediaView.visible && !window.videoCaptured
-
-            MouseArea {
-                id: dragArea
-                hoverEnabled: true
-                anchors.fill: parent
-                enabled: !mediaView.visible && !window.videoCaptured
-                property real startX: 0
-                property real startY: 0
-                property int swipeThreshold: 80
-                property var lastTapTime: 0
-                property int doubleTapInterval: 300
-
-                onPressed: {
-                    startX = mouse.x
-                    startY = mouse.y
-                }
-
-                onReleased: {
-                    var deltaX = mouse.x - startX
-                    var deltaY = mouse.y - startY
-
-                    var currentTime = new Date().getTime();
-                    if (currentTime - lastTapTime < doubleTapInterval) {
-                        window.blurView = 1;
-                        camera.position = camera.position === Camera.BackFace ? Camera.FrontFace : Camera.BackFace;
-                        cameraSwitchDelay.start();
-                        lastTapTime = 0;
-                    } else {
-                        lastTapTime = currentTime;
-                        if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > swipeThreshold) {
-                            if (deltaY > 0) { // Swipe down logic
-                                configBarDrawer.open()
-                            } else { // Swipe up logic
-                                window.blurView = 1;
-                                flashButton.state = "flashOff"
-                                camera.position = camera.position === Camera.BackFace ? Camera.FrontFace : Camera.BackFace;
-                                cameraSwitchDelay.start();
-                            }
-                        } else if (Math.abs(deltaX) > swipeThreshold) {
-                            if (deltaX > 0) { // Swipe right
-                                window.blurView = 1
-                                window.swipeDirection = 0
-                                swappingDelay.start()
-                            } else { // Swipe left
-                                window.blurView = 1
-                                window.swipeDirection = 1
-                                swappingDelay.start()
-                            }
-                        } else { // Touch
-                            var relativePoint;
-
-                            switch (viewfinder.orientation) {
-                                case 0:
-                                    relativePoint = Qt.point(mouse.x / viewfinder.contentRect.width, mouse.y / viewfinder.contentRect.height)
-                                    break
-                                case 90:
-                                    relativePoint = Qt.point(1 - (mouse.y / viewfinder.contentRect.height), mouse.x / viewfinder.contentRect.width)
-                                    break
-                                case 180:
-                                    absolutePoint = Qt.point(1 - (mouse.x / viewfinder.contentRect.width), 1 - (mouse.y / viewfinder.contentRect.height))
-                                    break
-                                case 270:
-                                    relativePoint = Qt.point(mouse.y / viewfinder.contentRect.height, 1 - (mouse.x / viewfinder.contentRect.width))
-                                    break
-                                default:
-                                    console.error("wtf")
-                            }
-
-                            if (aefLockTimer.running) {
-                                focusState.state = "TargetLocked"
-                                aefLockTimer.stop()
-                            } else {
-                                focusState.state = "ManualFocus"
-                                window.aeflock = "AEFLockOff"
-                            }
-
-                            if (window.aeflock !== "AEFLockOn" || focusState.state === "TargetLocked") {
-                                camera.focus.customFocusPoint = relativePoint
-                                focusPointRect.width = 60 * window.scalingRatio
-                                focusPointRect.height = 60 * window.scalingRatio
-                                window.focusPointVisible = true
-                                focusPointRect.x = mouse.x - (focusPointRect.width / 2)
-                                focusPointRect.y = mouse.y - (focusPointRect.height / 2)
-                            }
-
-                            console.log("index: " + configBar.currIndex)
-                            window.blurView = 0
-                            configBarDrawer.close()
-                            optionContainer.state = "closed"
-                            visTm.start()
-                        }
-                    }
-                }
-            }
-
-            onPinchUpdated: {
-                camZoom.zoom = pinch.scale * camZoom.zoomFactor
-            }
-
-            Rectangle {
-                id: focusPointRect
-                border {
-                    width: 2
-                    color: "#FDD017"
-                }
-
-                color: "transparent"
-                radius: 5 * window.scalingRatio
-                width: 80 * window.scalingRatio
-                height: 80 * window.scalingRatio
-                visible: window.focusPointVisible
-
-                Timer {
-                    id: visTm
-                    interval: 500; running: false; repeat: false
-                    onTriggered: window.aeflock === "AEFLockOff" ? window.focusPointVisible = false : null
-                }
-            }
-        }
-
-        QrCode {
-            id: qrCodeComponent
-            viewfinder: viewfinder
-            openPopupFunction: openPopup
-        }
-
-        Rectangle {
-            anchors.fill: parent
-            opacity: blurView ? 1 : 0
-            color: "#40000000"
-            visible: opacity != 0
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 300
-                }
-            }
-        }
-    }
-
-    FastBlur {
-        id: vBlur
-        anchors.fill: parent
-        opacity: blurView ? 1 : 0
-        source: viewfinder
-        radius: 128
-        visible: opacity != 0
-        transparentBorder: false
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 300
-            }
-        }
-    }
-
-    Glow {
-        anchors.fill: vBlur
-        opacity: blurView ? 1 : 0
-        radius: 4
-        samples: 1
-        color: "black"
-        source: vBlur
-        visible: opacity != 0
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 300
-            }
-        }
-    }
-
-    function gcd(a, b) {
-        if (b == 0) {
-            return a;
-        } else {
-            return gcd(b, a % b);
-        }
-    }
-
-    function fnAspectRatio() {
-        var maxResolution = {width: 0, height: 0};
-        var new43 = 0;
-        var new169 = 0;
-
-        for (var p in camera.imageCapture.supportedResolutions) {
-            var res = camera.imageCapture.supportedResolutions[p];
-
-            var gcdValue = gcd(res.width, res.height);
-            var aspectRatio = (res.width / gcdValue) + ":" + (res.height / gcdValue);
-
-            if (res.width * res.height > maxResolution.width * maxResolution.height) {
-                maxResolution = res;
-            }
-
-            if (aspectRatio === "4:3" && !new43) {
-                new43 = 1;
-                camera.firstFourThreeResolution = res;
-            }
-
-            if (aspectRatio === "16:9" && !new169) {
-                new169 = 1;
-                camera.firstSixteenNineResolution = res;
-            }
-        }
-
-        if (camera.aspWide) {
-            camera.imageCapture.resolution = camera.firstSixteenNineResolution;
-        } else {
-            camera.imageCapture.resolution = camera.firstFourThreeResolution
-        }
-
-        if (settings.cameras[camera.deviceId] && settings.cameras[camera.deviceId].resolution !== undefined) {
-            settings.cameras[camera.deviceId].resolution = Math.round(
-                (camera.imageCapture.supportedResolutions[0].width * camera.imageCapture.supportedResolutions[0].height) / 1000000
-            );
-        }
-    }
-
-    Camera {
-        id: camera
-        objectName: "camera"
-        captureMode: Camera.CaptureStillImage
-
-        property variant firstFourThreeResolution
-        property variant firstSixteenNineResolution
-        property var aspWide: 0
-
-        focus {
-            focusMode: Camera.AutoFocus
-            focusPointMode: Camera.FocusPointCenter
-        }
-
-        imageProcessing {
-            denoisingLevel: 1.0
-            sharpeningLevel: 1.0
-            whiteBalanceMode: CameraImageProcessing.WhiteBalanceAuto
-        }
-
-        flash.mode: Camera.FlashOff
-
-        imageCapture {
-            onImageCaptured: {
-                if (settings.soundOn === 1) {
-                    sound.play()
-                }
-
-                if (settings.hideInfoDrawer == 0) {
-                    infoDrawer.open()
-                }
-
-                if (mediaView.index < 0) {
-                    mediaView.folder = StandardPaths.writableLocation(StandardPaths.PicturesLocation) + "/furios-camera"
-                }
-            }
-
-            onImageSaved: {
-                if (window.locationAvailable === 1 ) {
-                    fileManager.appendGPSMetadata(path);
-                }
-            }
-        }
-
-        Component.onCompleted: {
-            camera.stop()
-            var currentCam = settings.cameraId
-            for (var i = 0; i < QtMultimedia.availableCameras.length; i++) {
-                if (settings.cameras[i].resolution == 0)
-                    camera.deviceId = i
-            }
-
-            if (settings.aspWide == 1 || settings.aspWide == 0) {
-                camera.aspWide = settings.aspWide
-            }
-
-            window.fnAspectRatio()
-
-            camera.deviceId = currentCam
-            camera.start()
-        }
-
-        onCameraStatusChanged: {
-            if (camera.cameraStatus == Camera.LoadedStatus) {
-                window.fnAspectRatio()
-            } else if (camera.cameraStatus == Camera.ActiveStatus) {
-                camera.focus.focusMode = Camera.FocusContinuous
-                camera.focus.focusPointMode = Camera.FocusPointAuto
-            }
-        }
-
-        onDeviceIdChanged: {
-            settings.setValue("cameraId", deviceId);
-        }
-
-        onAspWideChanged: {
-            settings.setValue("aspWide", aspWide);
-        }
-    }
-
-    MediaPlayer {
-        id: camGst
-        autoPlay: false
-        videoOutput: viewfinder
-        property var backendId: 0
-        property string outputPath: StandardPaths.writableLocation(StandardPaths.MoviesLocation).toString().replace("file://","") +
-                                            "/furios-camera/video" + Qt.formatDateTime(new Date(), "yyyyMMdd_hhmmsszzz") + ".mkv"
-
-        property var backends: [
-            {
-                front: "gst-pipeline: droidcamsrc mode=2 camera-device=1 ! video/x-raw ! videoconvert ! qtvideosink",
-                frontRecord: "gst-pipeline: droidcamsrc camera_device=1 mode=2 ! tee name=t t. ! queue ! video/x-raw, width=" + (camera.viewfinder.resolution.width * 3 / 4) + ", height=" + (camera.viewfinder.resolution.height * 3 / 4) + " ! videoconvert ! videoflip video-direction=2 ! qtvideosink t. ! queue ! video/x-raw, width=" + (camera.viewfinder.resolution.width * 3 / 4) + ", height=" + (camera.viewfinder.resolution.height * 3 / 4) + " ! videoconvert ! videoflip video-direction=auto ! jpegenc ! mkv. autoaudiosrc ! queue ! audioconvert ! droidaenc ! mkv. matroskamux name=mkv ! filesink location=" + outputPath,
-                back: "gst-pipeline: droidcamsrc mode=2 camera-device=" + camera.deviceId + " ! video/x-raw ! videoconvert ! qtvideosink",
-                backRecord: "gst-pipeline: droidcamsrc camera_device=" + camera.deviceId + " mode=2 ! tee name=t t. ! queue ! video/x-raw, width=" + (camera.viewfinder.resolution.width * 3 / 4) + ", height=" + (camera.viewfinder.resolution.height * 3 / 4) + " ! videoconvert ! qtvideosink t. ! queue ! video/x-raw, width=" + (camera.viewfinder.resolution.width * 3 / 4) + ", height=" + (camera.viewfinder.resolution.height * 3 / 4) + " ! videoconvert ! videoflip video-direction=auto ! jpegenc ! mkv. autoaudiosrc ! queue ! audioconvert ! droidaenc ! mkv. matroskamux name=mkv ! filesink location=" + outputPath
-            }
-        ]
-
-        onError: {
-            if (backendId + 1 in backends) {
-                backendId++;
-            }
-        }
-    }
-
-    function handleVideoRecording() {
-        if (window.videoCaptured == false) {
-            camGst.outputPath = StandardPaths.writableLocation(StandardPaths.MoviesLocation).toString().replace("file://","") +
-                                            "/furios-camera/video" + Qt.formatDateTime(new Date(), "yyyyMMdd_hhmmsszzz") + ".mkv"
-
-            if (camera.position === Camera.BackFace) {
-                camGst.source = camGst.backends[camGst.backendId].backRecord;
-            } else {
-                camGst.source = camGst.backends[camGst.backendId].frontRecord;
-            }
-
-            camera.stop();
-
-            camGst.play();
-            window.videoCaptured = true;
-        } else {
-            camGst.stop();
-            window.videoCaptured = false;
-            camera.cameraState = Camera.UnloadedState;
-            camera.start();
-        }
-    }
-
-    Item {
-        id: camZoom
-        property real zoomFactor: 2.0
-        property real zoom: 0
-        NumberAnimation on zoom {
-            duration: 200
-            easing.type: Easing.InOutQuad
-        }
-
-        onScaleChanged: {
-            camera.setDigitalZoom(scale * zoomFactor)
-        }
-    }
+    // Rectangle {
+    //     id: videoFrame
+    //     anchors.fill: parent
+    //     color: "black"
+    // }
 
     Timer {
         id: swappingDelay
@@ -734,7 +379,8 @@ ApplicationWindow {
 
                         onClicked: {
                             window.blurView = 0
-                            camera.deviceId = model.cameraId
+                            //camera.deviceId = model.cameraId
+                            settings.cameraDeviceId = model.cameraId
                             optionContainer.state = "closed"
                         }
                     }
@@ -755,7 +401,7 @@ ApplicationWindow {
         onTriggered: {
             countDown -= 1
             if (countDown < 1) {
-                camera.imageCapture.capture();
+                window.cameraTakeShot()
                 preCaptureTimer.stop();
             }
         }
@@ -871,52 +517,18 @@ ApplicationWindow {
 
                     height: width
                     anchors.fill: parent
-                    icon.source: flashButton.state === "flashOn" ? "icons/flashOn.svg" : flashButton.state === "flashOff" ? "icons/flashOff.svg" : "icons/flashAuto.svg"
+                    
                     icon.height: parent.height / 1.5
                     icon.width: parent.height / 1.5
                     icon.color: "white"
-                    state: settings.flash
-
-                    states: [
-                        State {
-                            name: "flashOff"
-                            PropertyChanges {
-                                target: camera
-                                flash.mode: Camera.FlashOff
-                            }
-
-                            PropertyChanges {
-                                target: settings
-                                flash: "flashOff"
-                            }
-                        },
-
-                        State {
-                            name: "flashOn"
-                            PropertyChanges {
-                                target: camera
-                                flash.mode: Camera.FlashOn
-                            }
-
-                            PropertyChanges {
-                                target: settings
-                                flash: "flashOn"
-                            }
-                        },
-
-                        State {
-                            name: "flashAuto"
-                                PropertyChanges {
-                                target: camera
-                                flash.mode: Camera.FlashAuto
-                            }
-
-                            PropertyChanges {
-                                target: settings
-                                flash: "flashAuto"
-                            }
+                    icon.source: {
+                        switch(settings.flashMode) {
+                            case Camera.FlashOff: return "icons/flashOff.svg";
+                            case Camera.FlashOn: return "icons/flashOn.svg";
+                            case Camera.FlashAuto: return "icons/flashAuto.svg";
+                            default: return "icons/flashOff.svg";
                         }
-                    ]
+                    }
 
                     background: Rectangle {
                         anchors.fill: parent
@@ -924,14 +536,21 @@ ApplicationWindow {
                     }
 
                     onClicked: {
-                        if (camera.position !== Camera.FrontFace) {
-                            if (flashButton.state == "flashOff") {
-                                flashButton.state = "flashOn"
-                            } else if (flashButton.state == "flashOn") {
-                                flashButton.state = "flashAuto"
-                            } else if (flashButton.state == "flashAuto") {
-                                flashButton.state = "flashOff"
+                        console.log("flash button");
+                        if (settings.cameraPosition !== Camera.FrontFace) {
+                            console.log("enabled")
+                            switch(settings.flashMode) {
+                                case Camera.FlashOff:
+                                    settings.flashMode = Camera.FlashOn;
+                                    break;
+                                case Camera.FlashOn:
+                                    settings.flashMode = Camera.FlashAuto;
+                                    break;
+                                case Camera.FlashAuto:
+                                    settings.flashMode = Camera.FlashOff;
+                                    break;
                             }
+                            window.setFlashState(settings.flashMode);
                         }
                     }
                 }
@@ -1076,7 +695,7 @@ ApplicationWindow {
                     }
 
                     onClicked: {
-                        if (camera.position !== Camera.FrontFace) {
+                        if (settings.cameraPosition !== Camera.FrontFace) {
                             if (aefLockBtn.state === "AEFLockOff") {
                                 focusState.state = "WaitingForTarget"
                                 window.aeflock = "AEFLockOn"
@@ -1157,11 +776,11 @@ ApplicationWindow {
                     }
 
                     onClicked: {
-                        if (camera.position === Camera.BackFace) {
+                        if (settings.cameraPosition === Camera.BackFace) {
                             flashButton.state = "flashOff"
-                            camera.position = Camera.FrontFace;
-                        } else if (camera.position === Camera.FrontFace) {
-                            camera.position = Camera.BackFace;
+                            settings.cameraPosition = Camera.FrontFace;
+                        } else if (settings.cameraPosition === Camera.FrontFace) {
+                            settings.cameraPosition = Camera.BackFace;
                         }
                     }
                 }
@@ -1298,10 +917,9 @@ ApplicationWindow {
                                     }
 
                                     onClicked: {
-                                        animation.start();
-                                        pinchArea.enabled = true
+                                        animation.start();                            
                                         window.blurView = 0
-                                        camera.imageCapture.capture()
+                                        window.cameraTakeShot()
                                     }
                                 }
                             }
@@ -1338,7 +956,8 @@ ApplicationWindow {
                                     }
 
                                     onClicked: {
-                                        pinchArea.enabled = true
+                                        //window.pinchAreaEnabled = true
+                                        //pinchArea.enabled = true
                                         window.blurView = 0
 
                                         if (configBar.currIndex > 0) {
@@ -1476,7 +1095,7 @@ ApplicationWindow {
                             onClicked: {
                                 blackSquareAnimation.start()
                                 redCircleAnimation.start()
-                                handleVideoRecording()
+                                window.cameraTakeVideo()
                             }
 
                             Behavior on rotation {
@@ -1495,7 +1114,7 @@ ApplicationWindow {
     MediaReview {
         id: mediaView
         anchors.fill: parent
-        onClosed: camera.start()
+        //onClosed: camera.start()
         focus: visible
 
         scalingRatio: window.scalingRatio
@@ -1919,7 +1538,8 @@ ApplicationWindow {
                             font.pixelSize:  35 * window.scalingRatio * 0.5
                             font.bold: true
                             font.family: "Lato Hairline"
-                            palette.buttonText: camera.aspWide === 1 ? "white" : "gray"
+                            palette.buttonText: settings.settingsAspWide === 1 ? "white" : "gray"
+                            //palette.buttonText: window.cameraAspWide === 1 ? "white" : "gray"
 
                             background: Rectangle {
                                 width: 60 * window.scalingRatio
@@ -1932,9 +1552,10 @@ ApplicationWindow {
                             }
 
                             onClicked: {
-                                camera.aspWide = 1;
+                                // camera.aspWide = 1;
+                                settings.settingsAspWide = 1;
                                 configBar.aspectRatioOpened = 0;
-                                camera.imageCapture.resolution = camera.firstSixteenNineResolution
+                                window.cameraChangeResolution(fourThreeButton.text)
                             }
                         }
 
@@ -1945,7 +1566,7 @@ ApplicationWindow {
                             font.pixelSize:  35 * window.scalingRatio * 0.5
                             font.bold: true
                             font.family: "Lato Hairline"
-                            palette.buttonText: camera.aspWide === 1 ? "gray" : "white"
+                            palette.buttonText: settings.settingsAspWide === 1 ? "gray" : "white"
 
                             background: Rectangle {
                                 width: 60 * window.scalingRatio
@@ -1958,9 +1579,10 @@ ApplicationWindow {
                             }
 
                             onClicked: {
-                                camera.aspWide = 0;
+                                //camera.aspWide = 0;
+                                settings.settingsAspWide = 0;
                                 configBar.aspectRatioOpened = 0;
-                                camera.imageCapture.resolution = camera.firstFourThreeResolution
+                                window.cameraChangeResolution(fourThreeButton.text)
                             }
                         }
 
@@ -2024,6 +1646,16 @@ ApplicationWindow {
 
         onClicked: {
             configBarDrawer.open()
+        }
+    }
+
+    Button {
+        text: cameraLoader.active ? "Unload Camera" : "Load Camera"
+        anchors.centerIn: parent
+        onClicked: {
+            window.stopCamera()
+
+            cameraLoader.active = !cameraLoader.active
         }
     }
 }
