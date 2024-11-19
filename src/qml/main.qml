@@ -667,27 +667,6 @@ ApplicationWindow {
                     icon.height: parent.height / 1.5
                     icon.width: parent.height / 1.5
                     icon.color: "white"
-                    state: window.aeflock
-
-                    states: [
-                        State {
-                            name: "AEFLockOff"
-
-                            PropertyChanges {
-                                target: window
-                                aeflock: "AEFLockOff"
-                            }
-                        },
-
-                        State {
-                            name: "AEFLockOn"
-
-                            PropertyChanges {
-                                target: window
-                                aeflock: "AEFLockOn"
-                            }
-                        }
-                    ]
 
                     background: Rectangle {
                         anchors.fill: parent
@@ -696,14 +675,14 @@ ApplicationWindow {
 
                     onClicked: {
                         if (settings.cameraPosition !== Camera.FrontFace) {
-                            if (aefLockBtn.state === "AEFLockOff") {
-                                focusState.state = "WaitingForTarget"
-                                window.aeflock = "AEFLockOn"
-                                aefLockTimer.start()
-                            } else if (aefLockBtn.state === "AEFLockOn") {
-                                window.aeflock = "AEFLockOff"
-                                focusState.state = "AutomaticFocus"
-                                window.focusPointVisible = false
+                            if (window.aeflock === "AEFLockOff") {
+                                focusState.state = "WaitingForTarget";
+                                window.aeflock = "AEFLockOn";
+                                aefLockTimer.start();
+                            } else {
+                                window.aeflock = "AEFLockOff";
+                                focusState.state = "AutomaticFocus";
+                                window.focusPointVisible = false;
                             }
                         }
                     }
