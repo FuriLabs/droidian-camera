@@ -101,6 +101,10 @@ Item {
         camera.stop();
     }
 
+    function handleStartCamera() {
+        camera.start();
+    }
+
     Camera {
         id: camera
         objectName: "camera"
@@ -167,8 +171,6 @@ Item {
 
             camera.deviceId = currentCam
             camera.start()
-
-            // store properties into settings
 
             settings.cameraPosition = camera.position
         }
