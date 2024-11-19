@@ -63,6 +63,7 @@ ApplicationWindow {
     signal cameraEnableGestures(bool value)
     signal cameraChangeResolution(string resolution)
     signal stopCamera()
+    signal startCamera()
     signal setFlashState(int flashState)
 
     onActiveChanged:{
@@ -256,6 +257,7 @@ ApplicationWindow {
             window.cameraChangeResolution.connect(cameraLoader.item.handleCameraChangeResolution);
             window.stopCamera.connect(cameraLoader.item.handleStopCamera);
             window.setFlashState.connect(cameraLoader.item.handleSetFlashState);
+            window.startCamera.connect(cameraLoader.item.handleStartCamera);
         }
     }
 
@@ -1093,7 +1095,7 @@ ApplicationWindow {
     MediaReview {
         id: mediaView
         anchors.fill: parent
-        //onClosed: camera.start()
+        onClosed: window.startCamera()
         focus: visible
 
         scalingRatio: window.scalingRatio
