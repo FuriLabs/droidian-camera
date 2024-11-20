@@ -89,12 +89,11 @@ Item {
             console.log(camera.firstFourThreeResolution)
             camera.imageCapture.resolution = camera.firstFourThreeResolution
         }
-        else if (resolution == "16:9" ) {
+        else if (resolution == "16:9") {
             console.log("changing to 16:9")
             camera.imageCapture.resolution = camera.firstSixteenNineResolution
             console.log(camera.firstSixteenNineResolution)
         }
-
     }
 
     function handleStopCamera() {
@@ -113,6 +112,10 @@ Item {
         camera.focus.focusPointMode = focusPointMode;
     }
 
+    function handleSetCameraAspWide(aspWide) {
+        camera.aspWide = aspWide;
+    }
+
     Camera {
         id: camera
         objectName: "camera"
@@ -120,7 +123,7 @@ Item {
 
         property variant firstFourThreeResolution
         property variant firstSixteenNineResolution
-        property var aspWide: settings.settingsAspWide
+        property var aspWide: 0
 
         position: settings.cameraPosition
 
@@ -160,6 +163,10 @@ Item {
                 if (window.locationAvailable === 1 ) {
                     fileManager.appendGPSMetadata(path);
                 }
+            }
+
+            onResolutionChanged: {
+                console.log("Resolution changed to: " + camera.imageCapture.resolution);
             }
         }
 

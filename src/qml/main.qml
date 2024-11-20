@@ -50,7 +50,6 @@ ApplicationWindow {
     property var popupButtons: null
     property var mediaViewOpened: false
     property var focusPointVisible: false
-    property var cameraAspWide: 1
     property var aeflock: "AEFLockOff"
     property var pinchAreaEnabled: true
 
@@ -68,6 +67,7 @@ ApplicationWindow {
     signal setFlashState(int flashState)
     signal setFocusMode(int focusMode)
     signal setFocusPointMode(int focusPointMode)
+    signal setCameraAspWide(int aspWide)
 
     onActiveChanged:{
         // if (camera.cameraState === Camera.UnloadedState && window.active) {
@@ -151,10 +151,10 @@ ApplicationWindow {
         property var hideInfoDrawer: 0
         property int gpsOn: 0
         property int cameraPosition: Camera.FrontFace
-        property int settingsAspWide: 0
 
         onFocusModeChanged: setFocusMode(settings.focusMode)
         onFocusPointModeChanged: setFocusPointMode(settings.focusPointMode)
+        onAspWideChanged: setCameraAspWide(settings.aspWide)
     }
 
     Settings {
@@ -255,6 +255,7 @@ ApplicationWindow {
             window.startCamera.connect(cameraLoader.item.handleStartCamera);
             window.setFocusPointMode.connect(cameraLoader.item.handleSetFocusPointMode);
             window.setFocusMode.connect(cameraLoader.item.handleSetFocusMode);
+            window.setCameraAspWide.connect(cameraLoader.item.handleSetCameraAspWide);
         }
     }
 
@@ -262,12 +263,6 @@ ApplicationWindow {
         id: sound
         source: "sounds/camera-shutter.wav"
     }
-
-    // Rectangle {
-    //     id: videoFrame
-    //     anchors.fill: parent
-    //     color: "black"
-    // }
 
     Timer {
         id: swappingDelay
@@ -1519,8 +1514,7 @@ ApplicationWindow {
                             font.pixelSize:  35 * window.scalingRatio * 0.5
                             font.bold: true
                             font.family: "Lato Hairline"
-                            palette.buttonText: settings.settingsAspWide === 1 ? "white" : "gray"
-                            //palette.buttonText: window.cameraAspWide === 1 ? "white" : "gray"
+                            palette.buttonText: settings.aspWide === 1 ? "white" : "gray"
 
                             background: Rectangle {
                                 width: 60 * window.scalingRatio
@@ -1533,10 +1527,9 @@ ApplicationWindow {
                             }
 
                             onClicked: {
-                                // camera.aspWide = 1;
-                                settings.settingsAspWide = 1;
+                                settings.aspWide = 1;
                                 configBar.aspectRatioOpened = 0;
-                                window.cameraChangeResolution(fourThreeButton.text)
+                                window.cameraChangeResolution(sixteenNineButton.text)
                             }
                         }
 
@@ -1547,7 +1540,7 @@ ApplicationWindow {
                             font.pixelSize:  35 * window.scalingRatio * 0.5
                             font.bold: true
                             font.family: "Lato Hairline"
-                            palette.buttonText: settings.settingsAspWide === 1 ? "gray" : "white"
+                            palette.buttonText: settings.aspWide === 1 ? "gray" : "white"
 
                             background: Rectangle {
                                 width: 60 * window.scalingRatio
@@ -1560,8 +1553,7 @@ ApplicationWindow {
                             }
 
                             onClicked: {
-                                //camera.aspWide = 0;
-                                settings.settingsAspWide = 0;
+                                settings.aspWide = 0;
                                 configBar.aspectRatioOpened = 0;
                                 window.cameraChangeResolution(fourThreeButton.text)
                             }
