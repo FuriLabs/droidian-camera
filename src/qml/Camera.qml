@@ -69,13 +69,11 @@ Item {
     }
 
     function handleCameraTakeShot() {
-        console.log("Signal to take pciture.");
         pinchArea.enabled = true
         camera.imageCapture.capture()
     }
 
     function handleCameraTakeVideo() {
-        console.log("Signal to take pciture.");
         handleVideoRecording()
     }
 
@@ -85,19 +83,18 @@ Item {
 
     function handleCameraChangeResolution(resolution) {
         if (resolution == "4:3") {
-            console.log("changing to 4:3")
-            console.log(camera.firstFourThreeResolution)
             camera.imageCapture.resolution = camera.firstFourThreeResolution
         }
         else if (resolution == "16:9") {
-            console.log("changing to 16:9")
             camera.imageCapture.resolution = camera.firstSixteenNineResolution
-            console.log(camera.firstSixteenNineResolution)
         }
     }
 
     function handleStopCamera() {
-        camera.stop();
+        if (camera !== null && camera !== undefined) {
+            camera.stop();
+            cameraLoader.active = false;
+        }
     }
 
     function handleStartCamera() {
@@ -163,10 +160,6 @@ Item {
                 if (window.locationAvailable === 1 ) {
                     fileManager.appendGPSMetadata(path);
                 }
-            }
-
-            onResolutionChanged: {
-                console.log("Resolution changed to: " + camera.imageCapture.resolution);
             }
         }
 

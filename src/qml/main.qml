@@ -70,18 +70,13 @@ ApplicationWindow {
     signal setCameraAspWide(int aspWide)
 
     onActiveChanged:{
-        // if (camera.cameraState === Camera.UnloadedState && window.active) {
-        //     console.log("restarting camera")
-        //     //camera.cameraState = Camera.ActiveState
-        //    // camera.start()
-        // }
+        cameraLoader.active = true
     }
 
     onClosing: {
-        console.log("Window closing event triggered")
         close.accepted = false
         console.log("Stopping camera...")
-        // camera.stop()
+        window.stopCamera();
         customClosing()
     }
 
@@ -246,7 +241,7 @@ ApplicationWindow {
         source: "Camera.qml"
 
         onLoaded: {
-            console.log("Camera component has been loaded!")
+            console.log("Camera component loaded")
             window.cameraTakeShot.connect(cameraLoader.item.handleCameraTakeShot);
             window.cameraTakeVideo.connect(cameraLoader.item.handleCameraTakeVideo);
             window.cameraChangeResolution.connect(cameraLoader.item.handleCameraChangeResolution);
@@ -375,7 +370,6 @@ ApplicationWindow {
 
                         onClicked: {
                             window.blurView = 0
-                            //camera.deviceId = model.cameraId
                             window.cameraDeviceId = model.cameraId
                             optionContainer.state = "closed"
                         }
@@ -532,9 +526,7 @@ ApplicationWindow {
                     }
 
                     onClicked: {
-                        console.log("flash button");
                         if (settings.cameraPosition !== Camera.FrontFace) {
-                            console.log("enabled")
                             switch(settings.flashMode) {
                                 case Camera.FlashOff:
                                     settings.flashMode = Camera.FlashOn;
@@ -1619,16 +1611,6 @@ ApplicationWindow {
 
         onClicked: {
             configBarDrawer.open()
-        }
-    }
-
-    Button {
-        text: cameraLoader.active ? "Unload Camera" : "Load Camera"
-        anchors.centerIn: parent
-        onClicked: {
-            window.stopCamera()
-
-            cameraLoader.active = !cameraLoader.active
         }
     }
 }
