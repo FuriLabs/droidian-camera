@@ -70,7 +70,12 @@ ApplicationWindow {
     signal setCameraAspWide(int aspWide)
 
     onActiveChanged:{
-        cameraLoader.active = true
+        if (!window.active) {
+            cameraLoader.active = false;
+            console.log("Stopping camera...")
+        } else {
+            cameraLoader.active = true;
+        }
     }
 
     onClosing: {
