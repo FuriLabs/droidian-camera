@@ -65,6 +65,8 @@ ApplicationWindow {
     signal stopCamera()
     signal startCamera()
     signal setFlashState(int flashState)
+    signal setFocusMode(int focusMode)
+    signal setFocusPointMode(int focusPointMode)
 
     onActiveChanged:{
         // if (camera.cameraState === Camera.UnloadedState && window.active) {
@@ -133,7 +135,7 @@ ApplicationWindow {
         property int aspWide: 0
         property int flashMode: Camera.FlashOff
         property int focusMode: Camera.FocusAuto
-        property int focusPointMode: Camera.FocusPointCenter
+        property int focusPointMode: Camera.FocusPointCustom
         property var cameras: [{"cameraId": 0, "resolution": 0},
                                 {"cameraId": 1, "resolution": 0},
                                 {"cameraId": 2, "resolution": 0},
@@ -144,13 +146,15 @@ ApplicationWindow {
                                 {"cameraId": 7, "resolution": 0},
                                 {"cameraId": 8, "resolution": 0},
                                 {"cameraId": 9, "resolution": 0}]
-
         property int soundOn: 1
         property var hideInfoDrawer: 0
         property int gpsOn: 0
         property int cameraPosition: Camera.FrontFace
         property int settingsAspWide: 0
         property var cameraDeviceId: model.cameraId;
+
+        onFocusModeChanged: setFocusMode(settings.focusMode)
+        onFocusPointModeChanged: setFocusPointMode(settings.focusPointMode)
     }
 
     Settings {
@@ -175,7 +179,7 @@ ApplicationWindow {
 
                 PropertyChanges {
                     target: settings
-                    focusMode: Camera.FocusAuto
+                    focusMode: Camera.FocusContinuous
                     focusPointMode: Camera.FocusPointCustom
                 }
             },
@@ -190,15 +194,6 @@ ApplicationWindow {
             },
             State {
                 name: "AutomaticFocus" // Moving around and no touch, no AEF lock.
-
-                PropertyChanges {
-                    target: settings
-                    focusMode: Camera.FocusAuto
-                    focusPointMode: Camera.FocusPointAuto
-                }
-            },
-            State {
-                name: "ManualFocus" // Touch screen and no AEF lock.
 
                 PropertyChanges {
                     target: settings
@@ -258,6 +253,8 @@ ApplicationWindow {
             window.stopCamera.connect(cameraLoader.item.handleStopCamera);
             window.setFlashState.connect(cameraLoader.item.handleSetFlashState);
             window.startCamera.connect(cameraLoader.item.handleStartCamera);
+            window.setFocusPointMode.connect(cameraLoader.item.handleSetFocusPointMode);
+            window.setFocusMode.connect(cameraLoader.item.handleSetFocusMode);
         }
     }
 
@@ -303,8 +300,10 @@ ApplicationWindow {
         repeat: false
 
         onTriggered: {
-            focusState.state = "AutomaticFocus"
-            window.aeflock = "AEFLockOff"
+            if (focusState.state !== "TargetLocked") {
+                focusState.state = "AutomaticFocus"
+                window.aeflock = "AEFLockOff"
+            }
         }
     }
 

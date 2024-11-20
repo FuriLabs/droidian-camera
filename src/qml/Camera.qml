@@ -105,6 +105,14 @@ Item {
         camera.start();
     }
 
+    function handleSetFocusMode(focusMode) {
+        camera.focus.focusMode = focusMode;
+    }
+
+    function handleSetFocusPointMode(focusPointMode) {
+        camera.focus.focusPointMode = focusPointMode;
+    }
+
     Camera {
         id: camera
         objectName: "camera"
@@ -179,8 +187,7 @@ Item {
             if (camera.cameraStatus == Camera.LoadedStatus) {
                 cameraItem.fnAspectRatio()
             } else if (camera.cameraStatus == Camera.ActiveStatus) {
-                camera.focus.focusMode = Camera.FocusContinuous
-                camera.focus.focusPointMode = Camera.FocusPointAuto
+                focusState.state = "AutomaticFocus";
             }
         }
 
@@ -192,9 +199,6 @@ Item {
             settings.setValue("aspWide", aspWide);
         }
     }
-
-
-
 
     VideoOutput {
         id: viewfinder
@@ -293,7 +297,7 @@ Item {
                                 focusState.state = "TargetLocked"
                                 aefLockTimer.stop()
                             } else {
-                                focusState.state = "ManualFocus"
+                                focusState.state = "AutomaticFocus"
                                 window.aeflock = "AEFLockOff"
                             }
 
@@ -306,9 +310,6 @@ Item {
                                 focusPointRect.y = mouse.y - (focusPointRect.height / 2)
                             }
 
-                            console.log("index: " + configBar.currIndex)
-                            console.log("Flash Mode: " + camera.flash.mode)
-                            console.log("Camera Position: " + camera.position)
                             window.blurView = 0
                             configBarDrawer.close()
                             optionContainer.state = "closed"
