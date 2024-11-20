@@ -124,7 +124,7 @@ Item {
 
         position: settings.cameraPosition
 
-        deviceId: settings.cameraDeviceId
+        deviceId: window.cameraDeviceId
 
         focus {
             focusMode: settings.focusMode

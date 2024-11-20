@@ -46,6 +46,7 @@ ApplicationWindow {
     property var popupTitle: null
     property var popupBody: null
     property var popupData: null
+    property var cameraDeviceId: null
     property var popupButtons: null
     property var mediaViewOpened: false
     property var focusPointVisible: false
@@ -151,7 +152,6 @@ ApplicationWindow {
         property int gpsOn: 0
         property int cameraPosition: Camera.FrontFace
         property int settingsAspWide: 0
-        property var cameraDeviceId: model.cameraId;
 
         onFocusModeChanged: setFocusMode(settings.focusMode)
         onFocusPointModeChanged: setFocusPointMode(settings.focusPointMode)
@@ -381,7 +381,7 @@ ApplicationWindow {
                         onClicked: {
                             window.blurView = 0
                             //camera.deviceId = model.cameraId
-                            settings.cameraDeviceId = model.cameraId
+                            window.cameraDeviceId = model.cameraId
                             optionContainer.state = "closed"
                         }
                     }
