@@ -61,10 +61,10 @@ void AppController::showWindow()
 
 void AppController::loadCamera() {
     QObject *rootObject = m_engine->rootObjects().first();
-    QObject *camera = rootObject->findChild<QObject*>("camera");
+    QObject *camera = rootObject->findChild<QObject*>("cameraLoader");
 
     if (camera) {
-        camera->setProperty("cameraState", QCamera::ActiveState);
+        camera->setProperty("active", true);
         qDebug() << "Camera state set to Active";
     }
 }
