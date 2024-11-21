@@ -33,9 +33,14 @@ Rectangle {
     property var mediaState: MediaPlayer.StoppedState
     property var videoAudio: false
     signal playbackRequest()
+    signal scanImageComponent()
     signal closed
     color: "black"
     visible: false
+
+    onCurrentFileUrlChanged: {
+        viewRect.scanImageComponent()
+    }
 
     function openPopup(title, body, buttons, data) {
         popupTitle = title
@@ -78,8 +83,30 @@ Rectangle {
     Loader {
         id: mediaLoader
         anchors.fill: parent
-        sourceComponent: viewRect.index === -1 ? emptyDirectoryComponent : imgModel.get(viewRect.index, "fileUrl") == undefined ? null :
-                          imgModel.get(viewRect.index, "fileUrl").toString().endsWith(".mkv") ? videoOutputComponent : imageComponent
+        visible: parent.visible
+        property string loadedComponentType: ""
+
+        sourceComponent: {
+            if (viewRect.index === -1) {
+                loadedComponentType = "empty";
+                return emptyDirectoryComponent;
+            } else if (imgModel.get(viewRect.index, "fileUrl") === undefined) {
+                loadedComponentType = "null";
+                return null;
+            } else if (imgModel.get(viewRect.index, "fileUrl").toString().endsWith(".mkv")) {
+                loadedComponentType = "video";
+                return videoOutputComponent;
+            } else {
+                loadedComponentType = "image";
+                return imageComponent;
+            }
+        }
+
+        onVisibleChanged: {
+            if (visible && loadedComponentType === "image") {
+                viewRect.scanImageComponent.connect(mediaLoader.item.scanImage)
+            }
+        }
     }
 
     function swipeGesture(deltaX, deltaY, swipeThreshold) {
@@ -231,6 +258,8 @@ Rectangle {
                     qrCodeComponent.updateOBBFromImage(imageContainer.positionData, image.scale, image.x, image.y);
 
                     qrCodeComponent.lastValidResult = result
+                } else {
+                    qrCodeComponent.lastValidResult = null
                 }
             }
 
