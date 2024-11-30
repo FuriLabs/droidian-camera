@@ -121,6 +121,41 @@ Item {
         camera.deviceId = deviceIdToSet
     }
 
+    function initializeCameraList() {
+        var blacklist = []
+
+        if (settingsCommon.blacklist !== "") {
+            blacklist = settingsCommon.blacklist.split(',');
+        }
+
+        allCamerasModel.clear();
+
+        for (var i = 0; i < QtMultimedia.availableCameras.length; i++) {
+            var cameraInfo = QtMultimedia.availableCameras[i];
+            var isBlacklisted = false;
+
+            for (var p in blacklist) {
+                if (blacklist[p] == cameraInfo.deviceId) {
+                    console.log("Camera with the id:", blacklist[p], "is blacklisted, not adding to camera list!");
+                    isBlacklisted = true;
+                    break;
+                }
+            }
+
+            if (isBlacklisted) {
+                continue;
+            }
+
+            if (cameraInfo.position === Camera.BackFace) {
+                allCamerasModel.append({"cameraId": cameraInfo.deviceId, "index": i, "position": cameraInfo.position});
+                window.backCameras += 1;
+            } else if (cameraInfo.position === Camera.FrontFace) {
+                allCamerasModel.insert(0, {"cameraId": cameraInfo.deviceId, "index": i, "position": cameraInfo.position});
+                window.frontCameras += 1;
+            }
+        }
+    }
+
     Camera {
         id: camera
         objectName: "camera"
