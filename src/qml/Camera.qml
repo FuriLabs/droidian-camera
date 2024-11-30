@@ -117,6 +117,10 @@ Item {
         camera.aspWide = aspWide;
     }
 
+    function handleSetDeviceID(deviceIdToSet) {
+        camera.deviceId = deviceIdToSet
+    }
+
     Camera {
         id: camera
         objectName: "camera"

@@ -67,6 +67,7 @@ ApplicationWindow {
     signal setFocusMode(int focusMode)
     signal setFocusPointMode(int focusPointMode)
     signal setCameraAspWide(int aspWide)
+    signal setDeviceID(int deviceIdToSet)
 
     onActiveChanged:{
         if (!window.active) {
@@ -255,6 +256,7 @@ ApplicationWindow {
             window.setFocusPointMode.connect(cameraLoader.item.handleSetFocusPointMode);
             window.setFocusMode.connect(cameraLoader.item.handleSetFocusMode);
             window.setCameraAspWide.connect(cameraLoader.item.handleSetCameraAspWide);
+            window.setDeviceID.connect(cameraLoader.item.handleSetDeviceID);
         }
     }
 
@@ -353,8 +355,8 @@ ApplicationWindow {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.preferredWidth: parent.width * 0.9
                     Button {
-                        property var pos: model.position == 1 ? "Back" : "Front"
-                        property var numDigits: settings.cameras[model.cameraId].resolution.toString().length
+                        property var pos: model.position == 1 ? "Back" : "Front";
+                        property var numDigits: settings.cameras[model.cameraId].resolution.toString().length;
                         Layout.alignment: Qt.AlignLeft
                         visible: parent.visible
                         icon.source: "icons/cameraVideoSymbolic.svg"
@@ -374,6 +376,7 @@ ApplicationWindow {
 
                         onClicked: {
                             window.blurView = 0
+                            setDeviceID(model.cameraId)
                             window.cameraDeviceId = model.cameraId
                             optionContainer.state = "closed"
                         }
