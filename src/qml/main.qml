@@ -60,7 +60,6 @@ ApplicationWindow {
     signal customClosing()
     signal cameraTakeShot()
     signal cameraTakeVideo()
-    signal cameraEnableGestures(bool value)
     signal cameraChangeResolution(string resolution)
     signal stopCamera()
     signal startCamera()

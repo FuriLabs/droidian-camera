@@ -57,13 +57,15 @@ Item {
             }
         }
 
-        if (camera.aspWide) {
+        if (camera.aspWide && camera.firstSixteenNineResolution != undefined) {
             camera.imageCapture.resolution = camera.firstSixteenNineResolution;
         } else {
-            camera.imageCapture.resolution = camera.firstFourThreeResolution
+            if (camera.firstFourThreeResolution != undefined) {
+                camera.imageCapture.resolution = camera.firstFourThreeResolution
+            }
         }
 
-        if (settings.cameras[camera.deviceId] && settings.cameras[camera.deviceId].resolution !== undefined) {
+        if (settings.cameras[camera.deviceId] && settings.cameras[camera.deviceId].resolution !== undefined && camera.imageCapture.supportedResolutions[0] != undefined) {
             settings.cameras[camera.deviceId].resolution = Math.round(
                 (camera.imageCapture.supportedResolutions[0].width * camera.imageCapture.supportedResolutions[0].height) / 1000000
             );
@@ -81,10 +83,6 @@ Item {
 
     function handleCameraTakeVideo() {
         handleVideoRecording()
-    }
-
-    function handleCameraEnableGestures(values) {
-
     }
 
     function handleCameraChangeResolution(resolution) {
