@@ -245,8 +245,8 @@ Rectangle {
                 }
             }
 
-            function scanImage() {
-                var result = QRCodeHandler.checkQRCodeInMedia(currentFileUrl, image.width, image.height)
+            function scanImageURL() {
+                var result = QRCodeHandler.scanImageURL(currentFileUrl, image.width, image.height)
 
                 if (result.isValid) {
                     imageContainer.positionData = getScaledCorners(result.position, result.readWidth, result.readHeight, image.width, image.height)
@@ -261,6 +261,31 @@ Rectangle {
                 } else {
                     qrCodeComponent.lastValidResult = null
                 }
+            }
+
+            function scanImage() {
+                image.grabToImage(function(result) {
+                    if (result.image) {
+                        var qrCodeResult = QRCodeHandler.scanImage(result.image);
+
+                        if (qrCodeResult.isValid) {
+                            imageContainer.positionData = getScaledCorners(qrCodeResult.position, qrCodeResult.readWidth, qrCodeResult.readHeight, image.width, image.height)
+
+                            qrCodeComponent.smoothedPosition = imageContainer.positionData
+
+                            qrCodeComponent.updateLowPass(imageContainer.positionData);
+
+                            qrCodeComponent.updateOBBFromImage(imageContainer.positionData, image.scale, image.x, image.y);
+
+                            qrCodeComponent.lastValidResult = qrCodeResult
+                        } else {
+                            qrCodeComponent.lastValidResult = null
+                        }
+                    } else {
+                        console.error("Failed to grab image for QR scanning.");
+                        qrCodeComponent.lastValidResult = null;
+                    }
+                });
             }
 
             PinchArea {
@@ -294,7 +319,7 @@ Rectangle {
                     }
 
                     onPressAndHold: {
-                        scanImage()
+                        scanImageURL()
                     }
 
                     onReleased: {
@@ -329,7 +354,7 @@ Rectangle {
                 repeat: false
                 onTriggered: {
                     if (mediaDate.visible){
-                        scanImage()
+                        scanImageURL()
                     }
                 }
             }

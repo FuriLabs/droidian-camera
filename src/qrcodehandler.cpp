@@ -21,6 +21,7 @@
 using ZXing::ReaderOptions;
 using ZXing::Position;
 using ZXing::Result;
+using ZXing::ImageFormat;
 
 QRegularExpression urlPattern("^(?:http(s)?://)?[\\w.-]+(?:\\.[\\w.-]+)+[\\w\\-._~:/?#[\\]@!$&'()*+,;=]*$");
 QRegularExpression wifiPattern("^WIFI:S:([^;]+);T:([^;]+);P:([^;]+)");
@@ -553,7 +554,79 @@ QString QRCodeHandler::getWifiId() {
     return ssid;
 }
 
-QVariant QRCodeHandler::checkQRCodeInMedia(const QString &currUrl) {
+ZXing::ImageFormat QRCodeHandler::getImageFormatFromQImage(const QImage& img) {
+    switch (img.format()) {
+        case QImage::Format_ARGB32:
+        case QImage::Format_RGB32:
+#if Q_BYTE_ORDER == Q_LITTLE_ENDIAN
+            return ZXing::ImageFormat::BGRX;
+#else
+            return ZXing::ImageFormat::XRGB;
+#endif
+        case QImage::Format_RGB888: return ZXing::ImageFormat::RGB;
+        case QImage::Format_RGBX8888:
+        case QImage::Format_RGBA8888: return ZXing::ImageFormat::RGBX;
+        case QImage::Format_Grayscale8: return ZXing::ImageFormat::Lum;
+        default: return ZXing::ImageFormat::None;
+    }
+}
+
+QVariantMap QRCodeHandler::constructResultMap(const Result &result, const QImage &image, QVariantMap resultMap) {
+
+    resultMap["text"] = QString::fromStdString(result.text());
+    resultMap["isValid"] = result.isValid();
+
+    QVariantMap positionMap;
+    positionMap["topLeft"] = QVariantMap{
+        {"x", result.position().topLeft().x},
+        {"y", result.position().topLeft().y}
+    };
+    positionMap["topRight"] = QVariantMap{
+        {"x", result.position().topRight().x},
+        {"y", result.position().topRight().y}
+    };
+    positionMap["bottomRight"] = QVariantMap{
+        {"x", result.position().bottomRight().x},
+        {"y", result.position().bottomRight().y}
+    };
+    positionMap["bottomLeft"] = QVariantMap{
+        {"x", result.position().bottomLeft().x},
+        {"y", result.position().bottomLeft().y}
+    };
+
+    resultMap["position"] = positionMap;
+    resultMap["readWidth"] = image.width();
+    resultMap["readHeight"] = image.height();
+    return resultMap;
+}
+
+QVariant QRCodeHandler::scanImage(const QImage image) {
+    QVariantMap resultMap;
+
+    QImage grayImage = image.convertToFormat(QImage::Format_Grayscale8);
+
+    ReaderOptions opts;
+    opts.setMaxNumberOfSymbols(1);
+
+    ZXing::ImageFormat format = getImageFormatFromQImage(grayImage);
+
+    if (format == ZXing::ImageFormat::None) {
+        qDebug() << "Unsupported image format.";
+        resultMap["text"] = "";
+        resultMap["isValid"] = false;
+        resultMap["position"] = QVariantMap();
+        return resultMap;
+    }
+
+    ZXing::ImageView imageView({grayImage.bits(), grayImage.width(), grayImage.height(), format, static_cast<int>(grayImage.bytesPerLine())});
+    Result qResults = ZXing::ReadBarcode(imageView, opts);
+
+    resultMap = constructResultMap(qResults, grayImage, resultMap);
+
+    return resultMap;
+}
+
+QVariant QRCodeHandler::scanImageURL(const QString &currUrl) {
     QVariantMap resultMap;
     QString filePath = currUrl;
     int colonIndex = filePath.indexOf(':');
@@ -575,24 +648,8 @@ QVariant QRCodeHandler::checkQRCodeInMedia(const QString &currUrl) {
     ReaderOptions opts;
     opts.setMaxNumberOfSymbols(1);
 
-    auto ImgFmtFromQImg = [](const QImage& img) {
-        switch (img.format()) {
-            case QImage::Format_ARGB32:
-            case QImage::Format_RGB32:
-#if Q_BYTE_ORDER == Q_LITTLE_ENDIAN
-                return ZXing::ImageFormat::BGRX;
-#else
-                return ZXing::ImageFormat::XRGB;
-#endif
-            case QImage::Format_RGB888: return ZXing::ImageFormat::RGB;
-            case QImage::Format_RGBX8888:
-            case QImage::Format_RGBA8888: return ZXing::ImageFormat::RGBX;
-            case QImage::Format_Grayscale8: return ZXing::ImageFormat::Lum;
-            default: return ZXing::ImageFormat::None;
-        }
-    };
+    ZXing::ImageFormat format = getImageFormatFromQImage(image);
 
-    ZXing::ImageFormat format = ImgFmtFromQImg(image);
     if (format == ZXing::ImageFormat::None) {
         qDebug() << "Unsupported image format.";
         resultMap["text"] = "";
@@ -604,30 +661,7 @@ QVariant QRCodeHandler::checkQRCodeInMedia(const QString &currUrl) {
     ZXing::ImageView imageView({image.bits(), image.width(), image.height(), format, static_cast<int>(image.bytesPerLine())});
     Result qResults = ZXing::ReadBarcode(imageView, opts);
 
-    resultMap["text"] = QString::fromStdString(qResults.text());
-    resultMap["isValid"] = qResults.isValid();
-
-    QVariantMap positionMap;
-    positionMap["topLeft"] = QVariantMap{
-        {"x", qResults.position().topLeft().x},
-        {"y", qResults.position().topLeft().y}
-    };
-    positionMap["topRight"] = QVariantMap{
-        {"x", qResults.position().topRight().x},
-        {"y", qResults.position().topRight().y}
-    };
-    positionMap["bottomRight"] = QVariantMap{
-        {"x", qResults.position().bottomRight().x},
-        {"y", qResults.position().bottomRight().y}
-    };
-    positionMap["bottomLeft"] = QVariantMap{
-        {"x", qResults.position().bottomLeft().x},
-        {"y", qResults.position().bottomLeft().y}
-    };
-
-    resultMap["position"] = positionMap;
-    resultMap["readWidth"] = image.width();
-    resultMap["readHeight"] = image.height();
+    resultMap = constructResultMap(qResults, image, resultMap);
 
     return resultMap;
 }
