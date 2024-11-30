@@ -781,6 +781,7 @@ ApplicationWindow {
                         anchors.fill: parent
                         onClicked: {
                             mediaView.visible = true;
+                            window.stopCamera();
                         }
                     }
                 }
