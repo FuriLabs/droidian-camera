@@ -1,3 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (C) 2024 Furi Labs
+//
+// Authors:
+// Joaquin Philco <joaquinphilco@gmail.com>
+
 import QtQuick 2.0
 import QtQuick 2.15
 import QtQuick.Controls 2.15
@@ -51,13 +57,15 @@ Item {
             }
         }
 
-        if (camera.aspWide) {
+        if (camera.aspWide && camera.firstSixteenNineResolution != undefined) {
             camera.imageCapture.resolution = camera.firstSixteenNineResolution;
         } else {
-            camera.imageCapture.resolution = camera.firstFourThreeResolution
+            if (camera.firstFourThreeResolution != undefined) {
+                camera.imageCapture.resolution = camera.firstFourThreeResolution
+            }
         }
 
-        if (settings.cameras[camera.deviceId] && settings.cameras[camera.deviceId].resolution !== undefined) {
+        if (settings.cameras[camera.deviceId] && settings.cameras[camera.deviceId].resolution !== undefined && camera.imageCapture.supportedResolutions[0] != undefined) {
             settings.cameras[camera.deviceId].resolution = Math.round(
                 (camera.imageCapture.supportedResolutions[0].width * camera.imageCapture.supportedResolutions[0].height) / 1000000
             );
@@ -75,10 +83,6 @@ Item {
 
     function handleCameraTakeVideo() {
         handleVideoRecording()
-    }
-
-    function handleCameraEnableGestures(values) {
-
     }
 
     function handleCameraChangeResolution(resolution) {
@@ -111,6 +115,45 @@ Item {
 
     function handleSetCameraAspWide(aspWide) {
         camera.aspWide = aspWide;
+    }
+
+    function handleSetDeviceID(deviceIdToSet) {
+        camera.deviceId = deviceIdToSet
+    }
+
+    function initializeCameraList() {
+        var blacklist = []
+
+        if (settingsCommon.blacklist !== "") {
+            blacklist = settingsCommon.blacklist.split(',');
+        }
+
+        allCamerasModel.clear();
+
+        for (var i = 0; i < QtMultimedia.availableCameras.length; i++) {
+            var cameraInfo = QtMultimedia.availableCameras[i];
+            var isBlacklisted = false;
+
+            for (var p in blacklist) {
+                if (blacklist[p] == cameraInfo.deviceId) {
+                    console.log("Camera with the id:", blacklist[p], "is blacklisted, not adding to camera list!");
+                    isBlacklisted = true;
+                    break;
+                }
+            }
+
+            if (isBlacklisted) {
+                continue;
+            }
+
+            if (cameraInfo.position === Camera.BackFace) {
+                allCamerasModel.append({"cameraId": cameraInfo.deviceId, "index": i, "position": cameraInfo.position});
+                window.backCameras += 1;
+            } else if (cameraInfo.position === Camera.FrontFace) {
+                allCamerasModel.insert(0, {"cameraId": cameraInfo.deviceId, "index": i, "position": cameraInfo.position});
+                window.frontCameras += 1;
+            }
+        }
     }
 
     Camera {

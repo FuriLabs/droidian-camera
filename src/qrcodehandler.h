@@ -8,9 +8,14 @@
 #ifndef QRCODEHANDLER_H
 #define QRCODEHANDLER_H
 
+#include "zxingreader.h"
+
 #include <QObject>
 #include <QDBusMessage>
 #include <QVariant>
+
+using ZXing::Result;
+using ZXing::ImageFormat;
 
 #define NO_ROUTE_SIGNAL QString("icons/network-wireless-signal-no-route.svg")
 #define OFFLINE_SIGNAL QString("icons/network-wireless-signal-offline.svg")
@@ -30,7 +35,10 @@ public:
     Q_INVOKABLE QString parseQrString(const QString &qrString);
     Q_INVOKABLE void openUrlInFirefox(const QString &url);
     Q_INVOKABLE void connectToWifi();
-    Q_INVOKABLE QVariant checkQRCodeInMedia(const QString &currUrl);
+    Q_INVOKABLE QVariant scanImageURL(const QString &currUrl);
+    Q_INVOKABLE QVariant scanImage(const QImage image);
+    ZXing::ImageFormat getImageFormatFromQImage(const QImage& img);
+    QVariantMap constructResultMap(const Result &result, const QImage &image, QVariantMap resultMap);
     bool forgetConnection();
     bool deactivateConnection();
     quint8 getSignalStrength(const QString &ap);

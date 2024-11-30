@@ -33,9 +33,14 @@ Rectangle {
     property var mediaState: MediaPlayer.StoppedState
     property var videoAudio: false
     signal playbackRequest()
+    signal scanImageComponent()
     signal closed
     color: "black"
     visible: false
+
+    onCurrentFileUrlChanged: {
+        viewRect.scanImageComponent()
+    }
 
     function openPopup(title, body, buttons, data) {
         popupTitle = title
@@ -78,8 +83,30 @@ Rectangle {
     Loader {
         id: mediaLoader
         anchors.fill: parent
-        sourceComponent: viewRect.index === -1 ? emptyDirectoryComponent : imgModel.get(viewRect.index, "fileUrl") == undefined ? null :
-                          imgModel.get(viewRect.index, "fileUrl").toString().endsWith(".mkv") ? videoOutputComponent : imageComponent
+        visible: parent.visible
+        property string loadedComponentType: ""
+
+        sourceComponent: {
+            if (viewRect.index === -1) {
+                loadedComponentType = "empty";
+                return emptyDirectoryComponent;
+            } else if (imgModel.get(viewRect.index, "fileUrl") === undefined) {
+                loadedComponentType = "null";
+                return null;
+            } else if (imgModel.get(viewRect.index, "fileUrl").toString().endsWith(".mkv")) {
+                loadedComponentType = "video";
+                return videoOutputComponent;
+            } else {
+                loadedComponentType = "image";
+                return imageComponent;
+            }
+        }
+
+        onVisibleChanged: {
+            if (visible && loadedComponentType === "image") {
+                viewRect.scanImageComponent.connect(mediaLoader.item.scanImage)
+            }
+        }
     }
 
     function swipeGesture(deltaX, deltaY, swipeThreshold) {
@@ -218,8 +245,8 @@ Rectangle {
                 }
             }
 
-            function scanImage() {
-                var result = QRCodeHandler.checkQRCodeInMedia(currentFileUrl, image.width, image.height)
+            function scanImageURL() {
+                var result = QRCodeHandler.scanImageURL(currentFileUrl, image.width, image.height)
 
                 if (result.isValid) {
                     imageContainer.positionData = getScaledCorners(result.position, result.readWidth, result.readHeight, image.width, image.height)
@@ -231,7 +258,34 @@ Rectangle {
                     qrCodeComponent.updateOBBFromImage(imageContainer.positionData, image.scale, image.x, image.y);
 
                     qrCodeComponent.lastValidResult = result
+                } else {
+                    qrCodeComponent.lastValidResult = null
                 }
+            }
+
+            function scanImage() {
+                image.grabToImage(function(result) {
+                    if (result.image) {
+                        var qrCodeResult = QRCodeHandler.scanImage(result.image);
+
+                        if (qrCodeResult.isValid) {
+                            imageContainer.positionData = getScaledCorners(qrCodeResult.position, qrCodeResult.readWidth, qrCodeResult.readHeight, image.width, image.height)
+
+                            qrCodeComponent.smoothedPosition = imageContainer.positionData
+
+                            qrCodeComponent.updateLowPass(imageContainer.positionData);
+
+                            qrCodeComponent.updateOBBFromImage(imageContainer.positionData, image.scale, image.x, image.y);
+
+                            qrCodeComponent.lastValidResult = qrCodeResult
+                        } else {
+                            qrCodeComponent.lastValidResult = null
+                        }
+                    } else {
+                        console.error("Failed to grab image for QR scanning.");
+                        qrCodeComponent.lastValidResult = null;
+                    }
+                });
             }
 
             PinchArea {
@@ -265,7 +319,7 @@ Rectangle {
                     }
 
                     onPressAndHold: {
-                        scanImage()
+                        scanImageURL()
                     }
 
                     onReleased: {
@@ -300,7 +354,7 @@ Rectangle {
                 repeat: false
                 onTriggered: {
                     if (mediaDate.visible){
-                        scanImage()
+                        scanImageURL()
                     }
                 }
             }

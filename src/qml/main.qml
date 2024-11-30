@@ -60,7 +60,6 @@ ApplicationWindow {
     signal customClosing()
     signal cameraTakeShot()
     signal cameraTakeVideo()
-    signal cameraEnableGestures(bool value)
     signal cameraChangeResolution(string resolution)
     signal stopCamera()
     signal startCamera()
@@ -68,6 +67,7 @@ ApplicationWindow {
     signal setFocusMode(int focusMode)
     signal setFocusPointMode(int focusPointMode)
     signal setCameraAspWide(int aspWide)
+    signal setDeviceID(int deviceIdToSet)
 
     onActiveChanged:{
         if (!window.active) {
@@ -95,38 +95,6 @@ ApplicationWindow {
 
     ListModel {
         id: allCamerasModel
-        Component.onCompleted: {
-            var blacklist
-
-            if (settingsCommon.blacklist != "") {
-                blacklist = settingsCommon.blacklist.split(',')
-            }
-
-            for (var i = 0; i < QtMultimedia.availableCameras.length; i++) {
-                var cameraInfo = QtMultimedia.availableCameras[i];
-                var isBlacklisted = false;
-
-                for (var p in blacklist) {
-                    if (blacklist[p] == cameraInfo.deviceId) {
-                        console.log("Camera with the id:", blacklist[p], "is blacklisted, not adding to camera list!");
-                        isBlacklisted = true;
-                        break;
-                    }
-                }
-
-                if (isBlacklisted) {
-                    continue;
-                }
-
-                if (cameraInfo.position === Camera.BackFace) {
-                    append({"cameraId": cameraInfo.deviceId, "index": i, "position": cameraInfo.position});
-                    window.backCameras += 1;
-                } else if (cameraInfo.position === Camera.FrontFace) {
-                    insert(0, {"cameraId": cameraInfo.deviceId, "index": i, "position": cameraInfo.position});
-                    window.frontCameras += 1;
-                }
-            }
-        }
     }
 
     Settings {
@@ -256,6 +224,9 @@ ApplicationWindow {
             window.setFocusPointMode.connect(cameraLoader.item.handleSetFocusPointMode);
             window.setFocusMode.connect(cameraLoader.item.handleSetFocusMode);
             window.setCameraAspWide.connect(cameraLoader.item.handleSetCameraAspWide);
+            window.setDeviceID.connect(cameraLoader.item.handleSetDeviceID);
+
+            cameraLoader.item.initializeCameraList(); // Initialize CameraList model once camera component loaded
         }
     }
 
@@ -354,8 +325,8 @@ ApplicationWindow {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.preferredWidth: parent.width * 0.9
                     Button {
-                        property var pos: model.position == 1 ? "Back" : "Front"
-                        property var numDigits: settings.cameras[model.cameraId].resolution.toString().length
+                        property var pos: model.position == 1 ? "Back" : "Front";
+                        property var numDigits: settings.cameras[model.cameraId].resolution.toString().length;
                         Layout.alignment: Qt.AlignLeft
                         visible: parent.visible
                         icon.source: "icons/cameraVideoSymbolic.svg"
@@ -375,6 +346,7 @@ ApplicationWindow {
 
                         onClicked: {
                             window.blurView = 0
+                            setDeviceID(model.cameraId)
                             window.cameraDeviceId = model.cameraId
                             optionContainer.state = "closed"
                         }
@@ -809,7 +781,6 @@ ApplicationWindow {
                         anchors.fill: parent
                         onClicked: {
                             mediaView.visible = true;
-                            window.stopCamera();
                         }
                     }
                 }
