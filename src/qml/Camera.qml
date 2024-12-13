@@ -119,6 +119,7 @@ Item {
 
     function handleSetDeviceID(deviceIdToSet) {
         camera.deviceId = deviceIdToSet
+        settings.deviceId = deviceIdToSet
     }
 
     function initializeCameraList() {
@@ -167,7 +168,7 @@ Item {
 
         position: settings.cameraPosition
 
-        deviceId: window.cameraDeviceId
+        deviceId: settings.cameraId
 
         focus {
             focusMode: settings.focusMode
@@ -240,6 +241,10 @@ Item {
 
         onAspWideChanged: {
             settings.setValue("aspWide", aspWide);
+        }
+
+        onPositionChanged: {
+            settings.cameraId = deviceId
         }
     }
 
