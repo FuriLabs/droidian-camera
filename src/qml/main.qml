@@ -46,7 +46,6 @@ ApplicationWindow {
     property var popupTitle: null
     property var popupBody: null
     property var popupData: null
-    property var cameraDeviceId: null
     property var popupButtons: null
     property var mediaViewOpened: false
     property var focusPointVisible: false
@@ -73,6 +72,7 @@ ApplicationWindow {
         if (!window.active) {
             cameraLoader.active = false;
             console.log("Stopping camera...")
+            settings.sync()
         } else {
             cameraLoader.active = true;
         }
@@ -347,7 +347,7 @@ ApplicationWindow {
                         onClicked: {
                             window.blurView = 0
                             setDeviceID(model.cameraId)
-                            window.cameraDeviceId = model.cameraId
+                            settings.cameraId = model.cameraId
                             optionContainer.state = "closed"
                         }
                     }
