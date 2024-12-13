@@ -336,7 +336,6 @@ public:
 		if (formats() != newVal) {
 			ReaderOptions::setFormats(static_cast<ZXing::BarcodeFormat>(newVal));
 			emit formatsChanged();
-			qDebug() << ReaderOptions::formats();
 		}
 	}
 	Q_SIGNAL void formatsChanged();
