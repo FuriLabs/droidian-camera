@@ -86,11 +86,13 @@ Item {
     }
 
     function handleCameraChangeResolution(resolution) {
-        if (resolution == "4:3") {
-            camera.imageCapture.resolution = camera.firstFourThreeResolution
-        }
-        else if (resolution == "16:9") {
-            camera.imageCapture.resolution = camera.firstSixteenNineResolution
+        if (camera !== null) {
+            if (resolution == "4:3") {
+                camera.imageCapture.resolution = camera.firstFourThreeResolution
+            }
+            else if (resolution == "16:9") {
+                camera.imageCapture.resolution = camera.firstSixteenNineResolution
+            }
         }
     }
 
@@ -114,7 +116,9 @@ Item {
     }
 
     function handleSetCameraAspWide(aspWide) {
-        camera.aspWide = aspWide;
+        if (camera !== null) {
+            camera.aspWide = aspWide;
+        }
     }
 
     function handleSetDeviceID(deviceIdToSet) {
