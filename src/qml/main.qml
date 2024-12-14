@@ -71,6 +71,7 @@ ApplicationWindow {
     onActiveChanged:{
         if (!window.active) {
             console.log("Stopping camera...")
+            cameraLoader.disconnectSignals();
             window.stopCamera();
             settings.sync()
         } else {
@@ -81,6 +82,7 @@ ApplicationWindow {
     onClosing: {
         close.accepted = false
         console.log("Stopping camera...")
+        cameraLoader.disconnectSignals();
         window.stopCamera();
         customClosing()
     }
@@ -227,6 +229,21 @@ ApplicationWindow {
             window.setDeviceID.connect(cameraLoader.item.handleSetDeviceID);
 
             cameraLoader.item.initializeCameraList(); // Initialize CameraList model once camera component loaded
+        }
+
+        function disconnectSignals() {
+            if (cameraLoader.item) {
+                window.cameraTakeShot.disconnect(cameraLoader.item.handleCameraTakeShot);
+                window.cameraTakeVideo.disconnect(cameraLoader.item.handleCameraTakeVideo);
+                window.cameraChangeResolution.disconnect(cameraLoader.item.handleCameraChangeResolution);
+                window.stopCamera.disconnect(cameraLoader.item.handleStopCamera);
+                window.setFlashState.disconnect(cameraLoader.item.handleSetFlashState);
+                window.startCamera.disconnect(cameraLoader.item.handleStartCamera);
+                window.setFocusPointMode.disconnect(cameraLoader.item.handleSetFocusPointMode);
+                window.setFocusMode.disconnect(cameraLoader.item.handleSetFocusMode);
+                window.setCameraAspWide.disconnect(cameraLoader.item.handleSetCameraAspWide);
+                window.setDeviceID.disconnect(cameraLoader.item.handleSetDeviceID);
+            }
         }
     }
 
