@@ -70,8 +70,8 @@ ApplicationWindow {
 
     onActiveChanged:{
         if (!window.active) {
-            cameraLoader.active = false;
             console.log("Stopping camera...")
+            window.stopCamera();
             settings.sync()
         } else {
             cameraLoader.active = true;
