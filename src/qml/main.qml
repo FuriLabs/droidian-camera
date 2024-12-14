@@ -47,11 +47,8 @@ ApplicationWindow {
     property var popupBody: null
     property var popupData: null
     property var popupButtons: null
-    property var mediaViewOpened: false
     property var focusPointVisible: false
     property var aeflock: "AEFLockOff"
-    property var pinchAreaEnabled: true
-
 
     property var gps_icon_source: settings.gpsOn ? "icons/gpsOn.svg" : "icons/gpsOff.svg"
     property var locationAvailable: 0
@@ -917,8 +914,6 @@ ApplicationWindow {
                                     }
 
                                     onClicked: {
-                                        //window.pinchAreaEnabled = true
-                                        //pinchArea.enabled = true
                                         window.blurView = 0
 
                                         if (configBar.currIndex > 0) {
