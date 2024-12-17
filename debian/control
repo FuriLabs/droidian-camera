@@ -42,7 +42,6 @@ Depends: ${misc:Depends},
          gstreamer1.0-droid,
          gstreamer1.0-plugins-good,
          gstreamer1.0-plugins-base,
-         libzxing3
 Description: This package contains FuriOS' default camera app.
 
 Package: droidian-camera
