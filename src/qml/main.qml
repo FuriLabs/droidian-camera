@@ -46,13 +46,9 @@ ApplicationWindow {
     property var popupTitle: null
     property var popupBody: null
     property var popupData: null
-    property var cameraDeviceId: null
     property var popupButtons: null
-    property var mediaViewOpened: false
     property var focusPointVisible: false
     property var aeflock: "AEFLockOff"
-    property var pinchAreaEnabled: true
-
 
     property var gps_icon_source: settings.gpsOn ? "icons/gpsOn.svg" : "icons/gpsOff.svg"
     property var locationAvailable: 0
@@ -71,8 +67,10 @@ ApplicationWindow {
 
     onActiveChanged:{
         if (!window.active) {
-            cameraLoader.active = false;
             console.log("Stopping camera...")
+            cameraLoader.disconnectSignals();
+            window.stopCamera();
+            settings.sync()
         } else {
             cameraLoader.active = true;
         }
@@ -81,6 +79,7 @@ ApplicationWindow {
     onClosing: {
         close.accepted = false
         console.log("Stopping camera...")
+        cameraLoader.disconnectSignals();
         window.stopCamera();
         customClosing()
     }
@@ -228,6 +227,21 @@ ApplicationWindow {
 
             cameraLoader.item.initializeCameraList(); // Initialize CameraList model once camera component loaded
         }
+
+        function disconnectSignals() {
+            if (cameraLoader.item) {
+                window.cameraTakeShot.disconnect(cameraLoader.item.handleCameraTakeShot);
+                window.cameraTakeVideo.disconnect(cameraLoader.item.handleCameraTakeVideo);
+                window.cameraChangeResolution.disconnect(cameraLoader.item.handleCameraChangeResolution);
+                window.stopCamera.disconnect(cameraLoader.item.handleStopCamera);
+                window.setFlashState.disconnect(cameraLoader.item.handleSetFlashState);
+                window.startCamera.disconnect(cameraLoader.item.handleStartCamera);
+                window.setFocusPointMode.disconnect(cameraLoader.item.handleSetFocusPointMode);
+                window.setFocusMode.disconnect(cameraLoader.item.handleSetFocusMode);
+                window.setCameraAspWide.disconnect(cameraLoader.item.handleSetCameraAspWide);
+                window.setDeviceID.disconnect(cameraLoader.item.handleSetDeviceID);
+            }
+        }
     }
 
     SoundEffect {
@@ -347,7 +361,7 @@ ApplicationWindow {
                         onClicked: {
                             window.blurView = 0
                             setDeviceID(model.cameraId)
-                            window.cameraDeviceId = model.cameraId
+                            settings.cameraId = model.cameraId
                             optionContainer.state = "closed"
                         }
                     }
@@ -900,8 +914,6 @@ ApplicationWindow {
                                     }
 
                                     onClicked: {
-                                        //window.pinchAreaEnabled = true
-                                        //pinchArea.enabled = true
                                         window.blurView = 0
 
                                         if (configBar.currIndex > 0) {

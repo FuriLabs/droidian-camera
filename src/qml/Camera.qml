@@ -86,11 +86,13 @@ Item {
     }
 
     function handleCameraChangeResolution(resolution) {
-        if (resolution == "4:3") {
-            camera.imageCapture.resolution = camera.firstFourThreeResolution
-        }
-        else if (resolution == "16:9") {
-            camera.imageCapture.resolution = camera.firstSixteenNineResolution
+        if (camera !== null) {
+            if (resolution == "4:3") {
+                camera.imageCapture.resolution = camera.firstFourThreeResolution
+            }
+            else if (resolution == "16:9") {
+                camera.imageCapture.resolution = camera.firstSixteenNineResolution
+            }
         }
     }
 
@@ -114,11 +116,14 @@ Item {
     }
 
     function handleSetCameraAspWide(aspWide) {
-        camera.aspWide = aspWide;
+        if (camera !== null) {
+            camera.aspWide = aspWide;
+        }
     }
 
     function handleSetDeviceID(deviceIdToSet) {
         camera.deviceId = deviceIdToSet
+        settings.deviceId = deviceIdToSet
     }
 
     function initializeCameraList() {
@@ -167,7 +172,7 @@ Item {
 
         position: settings.cameraPosition
 
-        deviceId: window.cameraDeviceId
+        deviceId: settings.cameraId
 
         focus {
             focusMode: settings.focusMode
@@ -240,6 +245,10 @@ Item {
 
         onAspWideChanged: {
             settings.setValue("aspWide", aspWide);
+        }
+
+        onPositionChanged: {
+            settings.cameraId = deviceId
         }
     }
 
