@@ -73,6 +73,7 @@ ApplicationWindow {
             settings.sync()
         } else {
             cameraLoader.active = true;
+            cameraLoader.connectSignals();
         }
     }
 
@@ -212,7 +213,7 @@ ApplicationWindow {
         asynchronous: true
         source: "Camera.qml"
 
-        onLoaded: {
+        function connectSignals() {
             console.log("Camera component loaded")
             window.cameraTakeShot.connect(cameraLoader.item.handleCameraTakeShot);
             window.cameraTakeVideo.connect(cameraLoader.item.handleCameraTakeVideo);
