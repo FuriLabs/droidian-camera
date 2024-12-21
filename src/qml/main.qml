@@ -71,6 +71,7 @@ ApplicationWindow {
             console.log("Stopping camera...")
             cameraLoader.disconnectSignals();
             window.stopCamera();
+            focusState.state = "Default"
             settings.sync()
         } else if (!window.firstLoad) {
             cameraLoader.active = true;
@@ -104,8 +105,8 @@ ApplicationWindow {
         property int cameraId: 0
         property int aspWide: 0
         property int flashMode: Camera.FlashOff
-        property int focusMode: Camera.FocusAuto
-        property int focusPointMode: Camera.FocusPointCustom
+        property int focusMode: Camera.FocusContinuous
+        property int focusPointMode: Camera.FocusPointCenter
         property var cameras: [{"cameraId": 0, "resolution": 0},
                                 {"cameraId": 1, "resolution": 0},
                                 {"cameraId": 2, "resolution": 0},
@@ -140,9 +141,17 @@ ApplicationWindow {
     Item {
         id: focusState
 
-        state: "AutomaticFocus"
+        state: "Default"
 
         states: [
+            State {
+                name: "Default"
+                PropertyChanges {
+                    target: settings
+                    focusMode: Camera.FocusContinuous
+                    focusPointMode: Camera.FocusPointCenter
+                }
+            },
             State {
                 name: "WaitingForTarget" // AEF lock on and waiting for target.
 
@@ -233,6 +242,8 @@ ApplicationWindow {
             window.setDeviceID.connect(cameraLoader.item.handleSetDeviceID);
 
             cameraLoader.item.initializeCameraList(); // Initialize CameraList model once camera component loaded
+
+            focusState.state = "Default"
         }
 
         function disconnectSignals() {
