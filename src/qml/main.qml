@@ -35,6 +35,7 @@ ApplicationWindow {
     property bool videoCaptured: false
 
     property var countDown: 0
+    property bool firstLoad: true
     property var blurView: optionContainer.state == "closed" && infoDrawer.position == 0.0 ? 0 : 1
     property var frontCameras: 0
     property var backCameras: 0
@@ -71,7 +72,7 @@ ApplicationWindow {
             cameraLoader.disconnectSignals();
             window.stopCamera();
             settings.sync()
-        } else {
+        } else if (!window.firstLoad) {
             cameraLoader.active = true;
             cameraLoader.connectSignals();
         }
@@ -212,6 +213,11 @@ ApplicationWindow {
         id: cameraLoader
         asynchronous: true
         source: "Camera.qml"
+
+        onLoaded: {
+            connectSignals()
+            window.firstLoad = false
+        }
 
         function connectSignals() {
             console.log("Camera component loaded")
