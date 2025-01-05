@@ -3,10 +3,18 @@
 //
 // Authors:
 // Bardia Moshiri <bardia@furilabs.com>
+// Joaquin Philco <joaquin@furilabs.com>
 
 #ifndef APPCONTROLLER_H
 #define APPCONTROLLER_H
 
+#include <QtCore/QtGlobal>
+
+#ifdef signals
+#undef signals
+#endif
+
+#include <gio/gio.h>
 #include <QObject>
 #include <QApplication>
 #include <QQmlApplicationEngine>
@@ -31,14 +39,18 @@ public:
     void initializeSettings();
     void createDirectories();
     void restartGpsIfNeeded();
+    void check_gsettings_background();
+    void setup_gsettings_listener();
 
 public slots:
     void hideWindow();
 
 private:
+    static void on_gsettings_changed(GSettings *settings, const gchar *key, gpointer user_data);
     void setupEngine();
     void loadMainWindow();
 
+    bool m_hidden_window;
     QApplication& m_app;
     QQmlApplicationEngine* m_engine;
     QQuickWindow* m_window;

@@ -3,7 +3,15 @@
 //
 // Authors:
 // Bardia Moshiri <bardia@furilabs.com>
+// Joaquin Philco <joaquinphilco@gmail.com>
 
+#include <QtCore/QtGlobal>
+
+#ifdef signals
+#undef signals
+#endif
+
+#include <gio/gio.h>
 #include "appcontroller.h"
 #include "flashlightcontroller.h"
 #include "filemanager.h"
@@ -18,8 +26,10 @@
 AppController::AppController(QApplication& app)
     : m_app(app), m_engine(nullptr), m_window(nullptr),
       m_flashlightController(nullptr), m_fileManager(nullptr),
-      m_thumbnailGenerator(nullptr), m_qrCodeHandler(nullptr)
+      m_thumbnailGenerator(nullptr), m_qrCodeHandler(nullptr),
+      m_hidden_window(false)
 {
+    setup_gsettings_listener();
 }
 
 AppController::~AppController()
@@ -38,17 +48,55 @@ void AppController::initialize()
     loadMainWindow();
 }
 
+void AppController::check_gsettings_background() {
+    GError *error = nullptr;
+
+    GSettings *settings = g_settings_new("io.furios.camera");
+    if (!settings) {
+        qDebug() << "Error: Failed to create GSettings object.";
+        return;
+    }
+
+    gboolean value = g_settings_get_boolean(settings, "camera-background");
+    g_object_unref(settings);
+
+    if (!value && m_hidden_window) {
+        QTimer::singleShot(0, QCoreApplication::instance(), &QCoreApplication::quit);
+    }
+}
+
+void AppController::setup_gsettings_listener() {
+    GSettings *settings = g_settings_new("io.furios.camera");
+    if (!settings) {
+        qDebug() << "Error: Failed to create GSettings object.";
+        return;
+    }
+
+    g_signal_connect(settings, "changed::camera-background", G_CALLBACK(on_gsettings_changed), this);
+}
+
+void AppController::on_gsettings_changed(GSettings *settings, const gchar *key, gpointer user_data) {
+    if (QString(key) == "camera-background") {
+        gboolean new_value = g_settings_get_boolean(settings, key);
+        AppController *self = static_cast<AppController *>(user_data);
+        self->check_gsettings_background();
+    }
+}
+
 void AppController::hideWindow()
 {
+    m_hidden_window = true;
     if (m_window) {
         // The camera is already unloaded in QML before this slot is called
         m_fileManager->turnOffGps();
         m_window->hide();
+        check_gsettings_background();
     }
 }
 
 void AppController::showWindow()
 {
+    m_hidden_window = false;
     if (m_window) {
         loadCamera(); // Before showing window, load back the camera
 
