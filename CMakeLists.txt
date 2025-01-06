@@ -68,3 +68,4 @@ install(FILES ${CMAKE_SOURCE_DIR}/furios-camera.desktop DESTINATION /usr/share/a
 install(FILES ${CMAKE_SOURCE_DIR}/camera-app.svg DESTINATION /usr/share/icons)
 install(FILES ${CMAKE_SOURCE_DIR}/furios-camera.conf DESTINATION /etc)
 install(FILES ${CMAKE_SOURCE_DIR}/extra/furios-camera-radio.pkla DESTINATION /etc/polkit-1/localauthority/10-vendor.d)
+install(FILES ${CMAKE_SOURCE_DIR}/extra/io.furios.camera.gschema.xml DESTINATION /usr/share/glib-2.0/schemas)
