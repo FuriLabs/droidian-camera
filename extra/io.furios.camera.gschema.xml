@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="io.furios.camera" path="/io/furios/camera/">
+    <key name="camera-background" type="b">
+      <summary>Allow background running</summary>
+      <description>
+        Allow the camera app to run in the background for faster launch time.
+      </description>
+      <default>false</default>
+    </key>
+  </schema>
+</schemalist>

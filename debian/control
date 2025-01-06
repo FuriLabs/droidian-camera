@@ -15,7 +15,8 @@ Build-Depends: cmake,
                libgstreamer1.0-dev,
                pkgconf,
                libzxing-dev,
-               libexiv2-dev
+               libexiv2-dev,
+               libglib2.0-dev
 Standards-Version: 4.5.1
 
 Package: furios-camera
