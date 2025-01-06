@@ -10,6 +10,9 @@ set(CMAKE_AUTORCC ON)
 find_package(Qt5 REQUIRED COMPONENTS Core DBus Widgets Quick Qml Multimedia)
 find_package(exiv2 REQUIRED)
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GLIB REQUIRED glib-2.0 gio-2.0)
+
 execute_process(COMMAND pkg-config --cflags gstreamer-1.0 OUTPUT_VARIABLE GST_CFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
 execute_process(COMMAND pkg-config --libs gstreamer-1.0 OUTPUT_VARIABLE GST_LIBS OUTPUT_STRIP_TRAILING_WHITESPACE)
 
@@ -54,10 +57,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     /usr/include/gstreamer-1.0
     /usr/include/glib-2.0
     ${GLIB_LIBDIR}/glib-2.0/include
+    ${GLIB_INCLUDE_DIRS}
 )
 
 target_compile_options(${PROJECT_NAME} PUBLIC ${GST_CFLAGS})
-target_link_libraries(${PROJECT_NAME} PUBLIC Qt5::Core Qt5::Widgets Qt5::Quick Qt5::Qml Qt5::Multimedia Qt5::DBus ZXing exiv2 ${GST_LIBS})
+target_link_libraries(${PROJECT_NAME} PUBLIC Qt5::Core Qt5::Widgets Qt5::Quick Qt5::Qml Qt5::Multimedia Qt5::DBus ZXing exiv2 ${GST_LIBS} ${GLIB_LIBRARIES})
 
 install(TARGETS ${PROJECT_NAME} DESTINATION /usr/bin)
 install(FILES ${CMAKE_SOURCE_DIR}/furios-camera.desktop DESTINATION /usr/share/applications)
