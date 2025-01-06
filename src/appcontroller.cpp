@@ -27,9 +27,10 @@ AppController::AppController(QApplication& app)
     : m_app(app), m_engine(nullptr), m_window(nullptr),
       m_flashlightController(nullptr), m_fileManager(nullptr),
       m_thumbnailGenerator(nullptr), m_qrCodeHandler(nullptr),
-      m_hidden_window(false)
+      m_hidden_window(false), m_lastOrientationState(false)
 {
     setup_gsettings_listener();
+    get_last_orientation_state();
 }
 
 AppController::~AppController()
@@ -49,8 +50,6 @@ void AppController::initialize()
 }
 
 void AppController::check_gsettings_background() {
-    GError *error = nullptr;
-
     GSettings *settings = g_settings_new("io.furios.camera");
     if (!settings) {
         qDebug() << "Error: Failed to create GSettings object.";
@@ -97,6 +96,7 @@ void AppController::hideWindow()
 void AppController::showWindow()
 {
     m_hidden_window = false;
+    get_last_orientation_state();
     if (m_window) {
         loadCamera(); // Before showing window, load back the camera
 
@@ -154,6 +154,36 @@ void AppController::setupEngine()
     ZXingQt::registerQmlAndMetaTypes();
 }
 
+void AppController::get_last_orientation_state() {
+    GSettings *settings = g_settings_new("org.gnome.settings-daemon.peripherals.touchscreen");
+    if (!settings) {
+        qDebug() << "Error: Failed to create GSettings object.";
+    }
+
+    gboolean value = g_settings_get_boolean(settings, "orientation-lock");
+
+    m_lastOrientationState = value;
+
+    g_object_unref(settings);
+}
+
+void AppController::handleWindowActiveChanged()
+{
+    GSettings *settings = g_settings_new("org.gnome.settings-daemon.peripherals.touchscreen");
+    if (!settings) {
+        qDebug() << "Error: Failed to create GSettings object.";
+        return;
+    }
+
+    if (m_window && !m_window->isActive()) {
+        g_settings_set_boolean(settings, "orientation-lock", m_lastOrientationState);
+    } else if (m_window) {
+        g_settings_set_boolean(settings, "orientation-lock", TRUE);
+    }
+
+    g_object_unref(settings);
+}
+
 void AppController::loadMainWindow()
 {
     const QUrl url(QStringLiteral("qrc:/main.qml"));
@@ -166,6 +196,7 @@ void AppController::loadMainWindow()
             window->setFlag(Qt::Window);
 
             QObject::connect(window, SIGNAL(customClosing()), this, SLOT(hideWindow()));
+            QObject::connect(window, &QQuickWindow::activeChanged, this, &AppController::handleWindowActiveChanged);
         }
     }, Qt::QueuedConnection);
 
